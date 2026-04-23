@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北京地铁查询系统</title>
+    <link rel="stylesheet" href="styles/styles.css">
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-image: url('index_background.png'); // 设置背景图片
+            background-size: cover; // 背景图片覆盖整个区域
+            background-position: center; // 背景图片居中显示
+        }
+
+        // 容器样式，用于包裹内容并设置背景透明度
+        .content-container {
+            background-color: rgba(255, 255, 255, 0.7); // 白色背景，70%透明度
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 10; // 确保在背景图片之上
+        }
+
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 2.5rem;
+            color: #333;
+        }
+
+        // 按钮容器样式，使用Flexbox布局使其垂直排列并有间距
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px; // 按钮之间的垂直间距
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.8); // 按钮背景，略微透明
+            border: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="content-container">
+        <h1>北京地铁查询系统</h1>
+        <div class="container">
+            <button onclick="window.location.href='query.html'">线路查询</button>
+            <button id="timetable-button">查看列车时刻表</button>
+            <button onclick="location.href='stations.html'">查看站点详细信息</button>
+            <button onclick="window.location.href='map.html'">查看北京地铁线路图</button>
+        </div>
+    </div>
+
+    // 用于动态显示列车线路列表的容器，初始时隐藏
+    <div id="train-line-list" style="margin-top: 20px; display: none; flex-wrap: wrap; gap: 10px; justify-content: center;">
+    </div>
+    // 用于动态显示列车时刻表的容器，初始时隐藏
+    <div id="train-list" style="margin-top: 20px; display: none; flex-wrap: wrap; gap: 10px; justify-content: center;">
+    </div>
+    // 用于显示查询结果的容器
+    <div id="result"></div>
+    // 引入JavaScript文件，用于处理交互逻辑
+    <script src="src/app.js"></script>
+</body>
+</html>

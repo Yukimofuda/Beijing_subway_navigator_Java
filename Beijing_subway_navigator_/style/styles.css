@@ -1,0 +1,60 @@
+body {
+  font-family: sans-serif;
+  margin: 20px;
+}
+
+h1 {
+  text-align: center;
+}
+
+.line-button, .train-button {
+  padding: 10px 20px;
+  margin: 5px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.line-button:hover, .train-button:hover {
+  background-color: #45a049;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+table, th, td {
+  border: 1px solid black;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+#back-button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #888;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+#back-button:hover {
+  background-color: #555;
+}
+
+.station-info {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.station-info h3 {
+  margin-top: 0;
+}
