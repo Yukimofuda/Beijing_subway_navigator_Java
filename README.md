@@ -24,7 +24,7 @@ This project is a web-based Beijing Subway navigation system. It supports shorte
 
 ---
 
-## 🏗️ 项目结构 | Project Structure
+## 项目结构 | Project Structure
 
 ```text
 Beijing_subway_navigator_html/
