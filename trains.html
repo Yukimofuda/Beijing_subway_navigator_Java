@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>车次选择</title>
+  <link rel="stylesheet" href="style/styles.css">
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-title">车次选择</div>
+        <div class="brand-subtitle">当前线路：<span id="current-line" class="muted">-</span></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <a class="btn btn-ghost" href="lines.html">返回线路选择</a>
+        <a class="btn btn-ghost" href="index.html">返回首页</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <h1 class="title">请选择车次</h1>
+        <p class="subtitle">下方展示该线路所有可选车次（工作日/双休日合并去重）。</p>
+        <div id="trains" class="list" style="margin-top:16px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="src/ui.js"></script>
+  <script defer src="src/timetableLoader.js"></script>
+  <script defer src="src/trains.js"></script>
+</body>
+</html>

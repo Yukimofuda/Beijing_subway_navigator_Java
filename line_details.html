@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线路详细信息</title>
+    <link rel="stylesheet" href="style/styles.css">
+</head>
+<body>
+    <div class="page">
+        <div class="topbar">
+            <div class="brand">
+                <div class="brand-title">线路详细信息</div>
+                <div class="brand-subtitle">站点顺序 · 区间距离 · 预计时间</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <a class="btn btn-ghost" href="stations.html">返回线路列表</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div id="line-station-details"></div>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="src/ui.js"></script>
+    <script defer src="src/line_details.js"></script>
+</body>
+</html>

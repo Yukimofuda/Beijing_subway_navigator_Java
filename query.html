@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线路查询</title>
+    <link rel="stylesheet" href="style/styles.css">
+</head>
+<body style="background-image: url('index_background.png');">
+    <div class="page">
+        <div class="topbar">
+            <div class="brand">
+                <div class="brand-title">线路查询</div>
+                <div class="brand-subtitle">支持最短时间 / 最少换乘</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div class="pill">当前时间：<span id="current-time">--:--</span></div>
+                <div class="pill" id="data-status">数据加载中</div>
+                <a class="btn btn-ghost" href="index.html">返回首页</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h1 class="title">地铁路线查询</h1>
+                <p class="subtitle">输入站点名称后，选择偏好并查询。</p>
+
+                <div style="display:grid; gap:12px; margin-top:16px;">
+                    <div class="field station-picker" data-picker="start">
+                        <div class="label">出发站点</div>
+                        <input class="input station-search" type="text" id="start-station" placeholder="输入线路或站点" autocomplete="off" required>
+                        <div class="picker-row">
+                            <select class="input station-line-select" id="start-line-select"></select>
+                            <select class="input station-select" id="start-station-select"></select>
+                        </div>
+                    </div>
+                    <div class="field station-picker" data-picker="end">
+                        <div class="label">目的站点</div>
+                        <input class="input station-search" type="text" id="end-station" placeholder="输入线路或站点" autocomplete="off" required>
+                        <div class="picker-row">
+                            <select class="input station-line-select" id="end-line-select"></select>
+                            <select class="input station-select" id="end-station-select"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid" style="margin-top:16px;">
+                    <button class="btn btn-ghost btn-toggle is-selected" id="btn-shortest" type="button" onclick="setTravelRequirement('shortestTime')">最短时间</button>
+                    <button class="btn btn-ghost btn-toggle" id="btn-transfers" type="button" onclick="setTravelRequirement('leastTransfers')">最少换乘</button>
+                    <button class="btn btn-primary" id="query-button" type="button" onclick="getRoute()" disabled>查询路线</button>
+                    <a class="btn" href="Map.html">打开线路图</a>
+                </div>
+
+                <div id="result" style="margin-top:16px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="src/ui.js"></script>
+    <script defer src="src/timetableLoader.js"></script>
+    <script defer src="src/query.js"></script>
+    <script defer src="src/lineManagement.js"></script>
+</body>
+</html>

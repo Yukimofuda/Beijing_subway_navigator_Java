@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>地铁时刻表</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style/styles.css">
+</head>
+<body>
+    <div class="page">
+        <div class="topbar">
+            <div class="brand">
+                <div class="brand-title">地铁时刻表</div>
+                <div class="brand-subtitle">选择日期类型 · 选择线路 · 选择发车</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <a class="btn btn-ghost" href="lines.html">返回线路选择</a>
+                <a class="btn btn-ghost" href="index.html">返回首页</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h1 class="title">浏览时刻表</h1>
+                <p class="subtitle">点击“加载时刻表”，再按日期类型进行浏览。</p>
+
+                <div class="grid" style="margin-top:16px;">
+                    <button class="btn btn-primary" id="timetable-button" type="button">加载时刻表</button>
+                    <div class="field" style="margin:0;">
+                        <div class="label">日期类型</div>
+                        <select id="day-type" class="input">
+                            <option value="工作日">工作日</option>
+                            <option value="双休日">周末</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="result" class="muted" style="margin-top:14px;">加载中</div>
+                <div id="train-line-list" class="list" style="display:none;"></div>
+                <div id="train-list" class="list" style="display:none; margin-top:12px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="src/ui.js"></script>
+    <script defer src="src/timetableLoader.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const timetableButton = document.getElementById('timetable-button');
+            const trainLineListDiv = document.getElementById('train-line-list');
+            const trainListDiv = document.getElementById('train-list');
+            const resultDiv = document.getElementById('result');
+            const dayTypeSelect = document.getElementById('day-type'); // 获取日期选择元素
+            let allTimetableData = null; // 用于存储加载的所有时刻表数据
+
+            function loadAndRender() {
+                loadTimetableData()
+                    .then(timetableData => {
+                        allTimetableData = timetableData; // 保存所有时刻表数据
+                        const dayKey = dayTypeSelect.value;
+                        const timetableForDay = timetableData[dayKey] || timetableData['双休日'] || timetableData['周末'] || timetableData['工作日'];
+                        if (!timetableForDay) throw new Error('No timetable day data');
+                        displayTrainLineButtons(timetableForDay);
+                        resultDiv.textContent = '请选择线路';
+                    })
+                    .catch(error => {
+                        console.error('错误:', error);
+                        resultDiv.textContent = '加载失败';
+                        if (window.showToast) window.showToast('加载失败');
+                    });
+            }
+
+            timetableButton.addEventListener('click', loadAndRender);
+
+            // 监听日期选择的变化
+            dayTypeSelect.addEventListener('change', () => {
+                if (allTimetableData) {
+                    const dayKey = dayTypeSelect.value;
+                    displayTrainLineButtons(
+                        allTimetableData[dayKey] || allTimetableData['双休日'] || allTimetableData['周末']
+                    );
+                }
+            });
+
+            function displayTrainLineButtons(timetableForDay) {
+                trainLineListDiv.innerHTML = ''; // 清空之前的按钮
+                const uniqueLines = Object.keys(timetableForDay);
+                if (uniqueLines.length > 0) {
+                    trainLineListDiv.style.display = 'flex';
+                    uniqueLines.forEach(line => {
+                        const lineButton = document.createElement('button');
+                        lineButton.classList.add('chip');
+                        lineButton.textContent = line;
+                        lineButton.addEventListener('click', () => {
+                            displayDepartureButtonsForLine(timetableForDay[line], line);
+                        });
+                        trainLineListDiv.appendChild(lineButton);
+                    });
+                } else {
+                    trainLineListDiv.textContent = '没有找到地铁线路信息。';
+                    trainLineListDiv.style.display = 'block';
+                }
+                trainListDiv.style.display = 'none'; // 隐藏车次按钮列表
+                resultDiv.innerHTML = ''; // 清空结果区域
+            }
+
+            function displayDepartureButtonsForLine(lineTimetable, lineName) {
+                trainListDiv.innerHTML = ''; // 清空之前的按钮
+                const departureTimes = {}; // 用于存储不重复的始发信息
+
+                for (const direction in lineTimetable) {
+                    for (const departureHourMinuteSecond in lineTimetable[direction]) {
+                        const firstStationInfo = lineTimetable[direction][departureHourMinuteSecond][0];
+                        if (firstStationInfo && firstStationInfo.length >= 2) {
+                            const departureTime = firstStationInfo[1];
+                            const departureStation = firstStationInfo[0];
+                            const uniqueDepartureInfo = `${departureStation}-${departureTime}-${lineName}-${direction}-${departureHourMinuteSecond}`;
+
+                            if (!departureTimes[uniqueDepartureInfo]) {
+                                departureTimes[uniqueDepartureInfo] = true;
+                                const buttonText = `${departureStation} - ${departureTime} (${direction})`;
+                                const trainButton = document.createElement('button');
+                                trainButton.classList.add('chip');
+                                trainButton.textContent = buttonText;
+                                trainButton.addEventListener('click', () => {
+                                    const details = {
+                                        line: lineName,
+                                        direction: direction,
+                                        departureTime: departureTime,
+                                        departureHourMinuteSecond: departureHourMinuteSecond,
+                                        schedule: lineTimetable[direction][departureHourMinuteSecond]
+                                    };
+                                    localStorage.setItem('currentTrainDetails', JSON.stringify(details));
+                                    window.location.href = 'train_details.html';
+                                });
+                                trainListDiv.appendChild(trainButton);
+                            }
+                        }
+                    }
+                }
+                trainListDiv.style.display = 'flex'; // 显示车次按钮列表
+                trainLineListDiv.style.display = 'none'; // 隐藏线路按钮列表
+                resultDiv.innerHTML = `<h3>${lineName} 列车时刻表</h3>`;
+            }
+
+            loadAndRender();
+        });
+    </script>
+</body>
+</html>

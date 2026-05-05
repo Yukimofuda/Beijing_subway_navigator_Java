@@ -1,0 +1,7 @@
+.DS_Store
+.server-info.json
+node_modules/
+.idea/
+*.class
+src/*.class
+src/*$*.class

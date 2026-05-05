@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北京地铁线路图</title>
+    <link rel="stylesheet" href="style/styles.css">
+    <style>
+        body::before {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.7)),
+                radial-gradient(1100px 360px at 0% 0%, rgba(66, 133, 244, 0.12), transparent 65%),
+                radial-gradient(1100px 360px at 100% 0%, rgba(52, 168, 83, 0.12), transparent 65%);
+        }
+
+        .map-shell {
+            width: min(1320px, 100%);
+            flex: 1;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 14px;
+        }
+
+        .map-card {
+            position: relative;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(60, 64, 67, 0.16);
+            border-radius: 18px;
+            box-shadow: 0 1px 3px rgba(60, 64, 67, 0.2), 0 8px 32px rgba(60, 64, 67, 0.2);
+            overflow: hidden;
+            backdrop-filter: blur(4px);
+        }
+
+        .map-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(900px 240px at 20% 0%, rgba(66, 133, 244, 0.1), transparent 55%),
+                radial-gradient(900px 240px at 80% 10%, rgba(52, 168, 83, 0.1), transparent 55%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 50%);
+            pointer-events: none;
+        }
+
+        .map-viewport {
+            height: calc(100vh - 180px);
+            min-height: 560px;
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #viewportTransform {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            transform-origin: 0 0;
+            cursor: grab;
+        }
+
+        #viewportTransform.dragging {
+            cursor: grabbing;
+        }
+
+        #subwayMap {
+            width: min(1280px, 96vw);
+            height: min(860px, 90vh);
+            pointer-events: none;
+            filter: drop-shadow(0 8px 16px rgba(60, 64, 67, 0.22));
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .map-toolbar {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .map-toolbar .left,
+        .map-toolbar .right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .hint {
+            position: absolute;
+            bottom: 14px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .hint .pill,
+        .hint a {
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="page" style="padding-top: 18px;">
+        <div class="map-shell">
+            <div class="topbar">
+                <div class="brand">
+                    <div class="brand-title">北京地铁线路图</div>
+                    <div class="brand-subtitle">拖拽平移 · 滚轮缩放 · 双击放大</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <a class="btn btn-ghost" href="index.html">返回首页</a>
+                </div>
+            </div>
+
+            <div class="map-card">
+                <div class="map-viewport" id="mapViewport" aria-label="地铁线路图查看器">
+                    <div id="viewportTransform">
+                        <img id="subwayMap" src="Beijing_Subway_System_Map.svg" alt="北京地铁线路图">
+                    </div>
+
+                    <div class="map-toolbar">
+                        <div class="left">
+                            <button class="btn btn-primary" type="button" id="zoomInBtn">放大</button>
+                            <button class="btn btn-primary" type="button" id="zoomOutBtn">缩小</button>
+                            <button class="btn btn-ghost" type="button" id="resetBtn">重置</button>
+                        </div>
+                        <div class="right">
+                            <div class="pill">缩放：<span id="zoomLabel">100%</span></div>
+                        </div>
+                    </div>
+
+                    <div class="hint">
+                        <div class="pill">快捷键：0 重置 / +/- 缩放</div>
+                        <a class="btn btn-ghost" href="Beijing_Subway_System_Map.svg" download>下载 SVG</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script defer src="src/ui.js"></script>
+    <script>
+        (function () {
+            const viewport = document.getElementById('mapViewport');
+            const transformEl = document.getElementById('viewportTransform');
+            const zoomLabel = document.getElementById('zoomLabel');
+
+            const zoomInBtn = document.getElementById('zoomInBtn');
+            const zoomOutBtn = document.getElementById('zoomOutBtn');
+            const resetBtn = document.getElementById('resetBtn');
+
+            let scale = 1;
+            let translateX = 0;
+            let translateY = 0;
+
+            const MIN_SCALE = 0.4;
+            const MAX_SCALE = 6;
+
+            let isDragging = false;
+            let lastX = 0;
+            let lastY = 0;
+            let frameRequested = false;
+
+            function clamp(value, min, max) {
+                return Math.min(max, Math.max(min, value));
+            }
+
+            function update() {
+                transformEl.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+                if (zoomLabel) zoomLabel.textContent = `${Math.round(scale * 100)}%`;
+            }
+
+            function scheduleUpdate() {
+                if (frameRequested) return;
+                frameRequested = true;
+                requestAnimationFrame(() => {
+                    frameRequested = false;
+                    update();
+                });
+            }
+
+            function zoomAt(factor, clientX, clientY) {
+                const rect = viewport.getBoundingClientRect();
+                const cx = clientX - rect.left;
+                const cy = clientY - rect.top;
+
+                const nextScale = clamp(scale * factor, MIN_SCALE, MAX_SCALE);
+                const s = nextScale / scale;
+                scale = nextScale;
+
+                translateX = cx - (cx - translateX) * s;
+                translateY = cy - (cy - translateY) * s;
+                scheduleUpdate();
+            }
+
+            function reset() {
+                scale = 1;
+                translateX = 0;
+                translateY = 0;
+                scheduleUpdate();
+            }
+
+            zoomInBtn.addEventListener('click', () => zoomAt(1.15, viewport.clientWidth / 2, viewport.clientHeight / 2));
+            zoomOutBtn.addEventListener('click', () => zoomAt(1 / 1.15, viewport.clientWidth / 2, viewport.clientHeight / 2));
+            resetBtn.addEventListener('click', reset);
+
+            viewport.addEventListener(
+                'wheel',
+                (e) => {
+                    e.preventDefault();
+                    const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+                    zoomAt(factor, e.clientX, e.clientY);
+                },
+                { passive: false }
+            );
+
+            viewport.addEventListener('dblclick', (e) => zoomAt(1.25, e.clientX, e.clientY));
+
+            viewport.addEventListener('pointerdown', (e) => {
+                isDragging = true;
+                lastX = e.clientX;
+                lastY = e.clientY;
+                transformEl.classList.add('dragging');
+                viewport.setPointerCapture(e.pointerId);
+            });
+
+            viewport.addEventListener('pointermove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - lastX;
+                const dy = e.clientY - lastY;
+                translateX += dx;
+                translateY += dy;
+                lastX = e.clientX;
+                lastY = e.clientY;
+                scheduleUpdate();
+            });
+
+            function endDrag() {
+                isDragging = false;
+                transformEl.classList.remove('dragging');
+            }
+
+            viewport.addEventListener('pointerup', endDrag);
+            viewport.addEventListener('pointercancel', endDrag);
+            viewport.addEventListener('pointerleave', endDrag);
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === '+' || e.key === '=') zoomAt(1.12, viewport.clientWidth / 2, viewport.clientHeight / 2);
+                if (e.key === '-' || e.key === '_') zoomAt(1 / 1.12, viewport.clientWidth / 2, viewport.clientHeight / 2);
+                if (e.key === '0') reset();
+            });
+
+            update();
+        })();
+    </script>
+</body>
+</html>
