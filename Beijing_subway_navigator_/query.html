@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线路查询</title>
+    <link rel="stylesheet" href="styles/styles.css">
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-image: url('index_background.png');
+            background-size: cover;
+            background-position: center;
+        }
+        .content-container {
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 10;
+            max-width: 90%;
+            width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 2rem;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+        label {
+            font-size: 1.1rem;
+            color: #333;
+            text-align: left;
+        }
+        input {
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: none;
+            border-radius: 5px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: rgba(200, 200, 200, 0.8);
+        }
+        #result {
+            margin-top: 15px;
+            text-align: left;
+            font-size: 0.95rem;
+            color: #333;
+            line-height: 1.5;
+        }
+        #current-time {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            font-size: 1rem;
+            color: #333;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+    <div id="current-time">加载时间...</div>
+    <div class="content-container">
+        <h1>地铁路线查询</h1>
+        <div class="container">
+            <label for="start-station">出发站点：</label>
+            <input type="text" id="start-station" placeholder="请输入出发站点" required>
+            <label for="end-station">目的站点：</label>
+            <input type="text" id="end-station" placeholder="请输入目的站点" required>
+            <button onclick="setTravelRequirement('shortestTime')">最短时间</button>
+            <button onclick="setTravelRequirement('leastTransfers')">最少换乘</button>
+            <button onclick="getRoute()">查询路线</button>
+        </div>
+        <div id="result"></div>
+    </div>
+    <script src="src/query.js"></script>
+    <script src="src/lineManagement.js"></script>
+</body>
+</html>

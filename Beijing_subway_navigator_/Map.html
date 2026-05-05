@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>北京地铁线路图</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .toolbar {
+            padding: 10px;
+            background: #ffffffcc;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .svg-container {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        #svgWrapper {
+            transform-origin: center center;
+            transition: transform 0.2s;
+            cursor: grab;
+        }
+
+        #svgWrapper.dragging {
+            cursor: grabbing;
+        }
+
+        #subwayMap {
+            pointer-events: none; /* Ensure mouse events pass to svgWrapper */
+        }
+
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button onclick="zoomIn()">放大</button>
+        <button onclick="zoomOut()">缩小</button>
+        <button onclick="resetZoom()">重置</button>
+        <button onclick="history.back()">返回</button>
+    </div>
+    <div class="svg-container">
+        <div id="svgWrapper">
+            <object id="subwayMap" type="image/svg+xml" data="Beijing_Subway_System_Map.svg"></object>
+        </div>
+    </div>
+
+    <script>
+        let scale = 1;
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let offsetX = 0, offsetY = 0; // 全局记录当前偏移
+
+        const svgWrapper = document.getElementById('svgWrapper');
+
+        // 更新变换样式
+        function updateTransform() {
+            svgWrapper.style.transform = `scale(${scale}) translate(${offsetX / scale}px, ${offsetY / scale}px)`;
+        }
+
+        function zoomIn() {
+            scale *= 1.1;
+            updateTransform();
+        }
+
+        function zoomOut() {
+            scale /= 1.1;
+            updateTransform();
+        }
+
+        function resetZoom() {
+            scale = 1;
+            offsetX = 0;
+            offsetY = 0;
+            updateTransform();
+        }
+
+        // 鼠标拖拽事件
+        svgWrapper.addEventListener('mousedown', function (e) {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            svgWrapper.classList.add('dragging');
+        });
+
+        svgWrapper.addEventListener('mousemove', function (e) {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            offsetX += dx;
+            offsetY += dy;
+            updateTransform();
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+
+        svgWrapper.addEventListener('mouseup', function () {
+            isDragging = false;
+            svgWrapper.classList.remove('dragging');
+        });
+
+        svgWrapper.addEventListener('mouseleave', function () {
+            isDragging = false;
+            svgWrapper.classList.remove('dragging');
+        });
+
+        // 触控事件
+        svgWrapper.addEventListener('touchstart', function (e) {
+            isDragging = true;
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
+            svgWrapper.classList.add('dragging');
+        });
+
+        svgWrapper.addEventListener('touchmove', function (e) {
+            if (!isDragging) return;
+            const touch = e.touches[0];
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+            offsetX += dx;
+            offsetY += dy;
+            updateTransform();
+            startX = touch.clientX;
+            startY = touch.clientY;
+            e.preventDefault();
+        });
+
+        svgWrapper.addEventListener('touchend', function () {
+            isDragging = false;
+            svgWrapper.classList.remove('dragging');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>车次详细信息</title>
+    <style>
+        table {
+            width: 80%;
+            border-collapse: collapse;
+            margin: 20px auto;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>车次详细信息</h1>
+    <div id="train-details" class="loading">加载中...</div>
+    <button onclick="window.history.back()">返回</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const detailsContainer = document.getElementById('train-details');
+            
+            // 获取 URL 中的参数 line 和 train
+            const urlParams = new URLSearchParams(window.location.search);
+            const line = urlParams.get('line');
+            const train = urlParams.get('train');
+
+            // 从 timetable.json 获取数据
+            fetch('data/timetable.json')
+                .then(response => response.json())
+                .then(data => {
+                    let trainDetails = null;
+
+                    // 遍历 timetable.json 数据，找到匹配的车次
+                    for (const dayType in data) {
+                        if (data.hasOwnProperty(dayType)) {
+                            for (const currentLine in data[dayType]) {
+                                if (data[dayType].hasOwnProperty(currentLine)) {
+                                    if (currentLine === line) {
+                                        for (const direction in data[dayType][currentLine]) {
+                                            if (data[dayType][currentLine].hasOwnProperty(direction)) {
+                                                for (const trainInfo in data[dayType][currentLine][direction]) {
+                                                    if (trainInfo === train) {
+                                                        // 找到匹配的车次，保存其详细信息
+                                                        trainDetails = data[dayType][currentLine][direction][trainInfo];
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 显示车次详细信息
+                    if (trainDetails) {
+                        const table = document.createElement('table');
+                        let html = `
+                            <tr>
+                                <th>站点</th>
+                                <th>时刻</th>
+                            </tr>
+                        `;
+                        trainDetails.forEach(stationInfo => {
+                            html += `
+                                <tr>
+                                    <td>${stationInfo[0]}</td>
+                                    <td>${stationInfo[1]}</td>
+                                </tr>
+                            `;
+                        });
+                        table.innerHTML = html;
+                        detailsContainer.innerHTML = '';  // 清空加载中提示
+                        detailsContainer.appendChild(table);  // 添加车次表格
+                    } else {
+                        detailsContainer.innerHTML = '<div class="no-details">未找到该车次的详细信息。</div>';
+                    }
+                })
+                .catch(error => console.error('加载车次信息失败:', error));
+        });
+    </script>
+</body>
+</html>

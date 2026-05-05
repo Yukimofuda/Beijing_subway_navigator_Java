@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>地铁线路选择</title>
+  <link rel="stylesheet" href="styles/styles.css">
+  <style>
+    body {
+      background-image: url('lines.png');
+      background-size: cover;
+      background-position: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    /* Semi-transparent white background for the title */
+    .title-container {
+      background-color: rgba(255, 255, 255, 0.7); /* White with 70% opacity */
+      padding: 10px;
+      text-align: center;
+      margin: 20px;
+      border-radius: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 36px;
+      color: #333;
+    }
+
+    .line-button {
+      padding: 10px 20px;
+      margin: 5px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    #back-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #888;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="title-container">
+    <h1>选择地铁线路</h1>
+  </div>
+  <div id="lines"></div>
+  <button id="back-button" onclick="goBack()">返回首页</button>
+  <script src="src/lines.js"></script>
+  <script>
+    function goBack() {
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>
