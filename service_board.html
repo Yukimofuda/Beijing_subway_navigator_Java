@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线路运行看板</title>
+    <link rel="stylesheet" href="style/styles.css">
+    <style>
+        .board-layout {
+            width: min(1120px, 100%);
+            display: grid;
+            grid-template-columns: 360px minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .board-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .board-panel-body {
+            padding: 16px;
+        }
+
+        .summary-strip {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .metric {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface-strong);
+            padding: 10px;
+        }
+
+        .metric-value {
+            font-size: 22px;
+            font-weight: 500;
+            line-height: 1.1;
+        }
+
+        .metric-label {
+            margin-top: 4px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .line-list {
+            margin-top: 12px;
+            display: grid;
+            gap: 8px;
+            max-height: calc(100vh - 310px);
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .line-row {
+            width: 100%;
+            text-align: left;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: border-color 130ms ease, box-shadow 130ms ease, background 130ms ease;
+        }
+
+        .line-row:hover,
+        .line-row.is-selected {
+            border-color: rgba(26, 115, 232, 0.45);
+            box-shadow: 0 1px 3px rgba(60, 64, 67, 0.2);
+        }
+
+        .line-row-name {
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .line-row-meta {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 3px;
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            background: #34a853;
+        }
+
+        .status-dot.is-closed {
+            background: #9aa0a6;
+        }
+
+        .status-dot.is-later {
+            background: #fbbc04;
+        }
+
+        .detail-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 14px;
+        }
+
+        .direction-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .direction-card {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            padding: 12px;
+        }
+
+        .departure-list {
+            display: grid;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .departure-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            font-size: 13px;
+        }
+
+        @media (max-width: 900px) {
+            .board-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .line-list {
+                max-height: 360px;
+            }
+
+            .direction-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body style="background-image: url('index_background.png');">
+    <div class="page">
+        <div class="topbar">
+            <div class="brand">
+                <div class="brand-title">线路运行看板</div>
+                <div class="brand-subtitle">线路状态 · 首末班 · 下一班</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <a class="btn btn-ghost" href="query.html">线路查询</a>
+                <a class="btn btn-ghost" href="index.html">返回首页</a>
+            </div>
+        </div>
+
+        <div class="board-layout">
+            <section class="board-panel">
+                <div class="board-panel-body">
+                    <div class="field">
+                        <div class="label">线路或站点</div>
+                        <input class="input" id="board-search" type="search" placeholder="搜索线路、站点、车次" autocomplete="off">
+                    </div>
+                    <div class="field" style="margin-top:10px;">
+                        <div class="label">日期类型</div>
+                        <select class="input" id="board-day">
+                            <option value="工作日">工作日</option>
+                            <option value="双休日">双休日</option>
+                        </select>
+                    </div>
+                    <div class="summary-strip">
+                        <div class="metric">
+                            <div class="metric-value" id="metric-lines">-</div>
+                            <div class="metric-label">线路</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="metric-running">-</div>
+                            <div class="metric-label">运行中</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="metric-stations">-</div>
+                            <div class="metric-label">站点</div>
+                        </div>
+                    </div>
+                    <div class="line-list" id="board-lines"></div>
+                </div>
+            </section>
+
+            <section class="board-panel">
+                <div class="board-panel-body">
+                    <div id="board-detail" class="muted">加载中</div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script defer src="src/ui.js"></script>
+    <script defer src="src/timetableLoader.js"></script>
+    <script defer src="src/serviceBoard.js"></script>
+</body>
+</html>
+
