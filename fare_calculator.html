@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>票价与距离测算</title>
+    <link rel="stylesheet" href="style/styles.css">
+    <style>
+        .tool-grid {
+            width: min(1120px, 100%);
+            display: grid;
+            grid-template-columns: 390px minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .tool-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .tool-panel-body {
+            padding: 16px;
+        }
+
+        .fare-result {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .fare-card {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            padding: 12px;
+        }
+
+        .fare-value {
+            font-size: 28px;
+            font-weight: 500;
+        }
+
+        .metric-label {
+            margin-top: 4px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .route-steps {
+            margin-top: 14px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .route-step {
+            display: grid;
+            grid-template-columns: 110px 1fr auto;
+            gap: 10px;
+            align-items: center;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            padding: 10px 12px;
+        }
+
+        @media (max-width: 900px) {
+            .tool-grid,
+            .fare-result {
+                grid-template-columns: 1fr;
+            }
+
+            .route-step {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body style="background-image: url('index_background.png');">
+    <div class="page">
+        <div class="topbar">
+            <div class="brand">
+                <div class="brand-title">票价与距离测算</div>
+                <div class="brand-subtitle">站点选择 · 路径距离 · 票价估算</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <a class="btn btn-ghost" href="query.html">线路查询</a>
+                <a class="btn btn-ghost" href="index.html">返回首页</a>
+            </div>
+        </div>
+
+        <div class="tool-grid">
+            <section class="tool-panel">
+                <div class="tool-panel-body">
+                    <div class="field">
+                        <div class="label">出发站</div>
+                        <input class="input" id="fare-start" list="fare-stations" placeholder="输入或选择站点" autocomplete="off">
+                    </div>
+                    <div class="field" style="margin-top:10px;">
+                        <div class="label">目的站</div>
+                        <input class="input" id="fare-end" list="fare-stations" placeholder="输入或选择站点" autocomplete="off">
+                    </div>
+                    <div class="grid" style="margin-top:10px;">
+                        <div class="field">
+                            <div class="label">乘客类型</div>
+                            <select class="input" id="fare-passenger">
+                                <option value="adult">成人</option>
+                                <option value="student">学生</option>
+                                <option value="concession">优惠</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <div class="label">出行时段</div>
+                            <select class="input" id="fare-period">
+                                <option value="normal">常规</option>
+                                <option value="offpeak">非高峰</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:12px;">
+                        <button class="btn btn-primary" id="fare-calc" type="button">测算</button>
+                        <button class="btn btn-ghost" id="fare-swap" type="button">交换</button>
+                    </div>
+                    <datalist id="fare-stations"></datalist>
+                </div>
+            </section>
+
+            <section class="tool-panel">
+                <div class="tool-panel-body">
+                    <div id="fare-output" class="muted">请选择出发站和目的站</div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script defer src="src/ui.js"></script>
+    <script defer src="src/fareCalculator.js"></script>
+</body>
+</html>
