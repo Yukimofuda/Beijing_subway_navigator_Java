@@ -43,7 +43,11 @@
   requestAnimationFrame(() => {
     root.classList.add('is-ready');
   });
-
+  window.addEventListener('pageshow', () => {
+    root.classList.remove('is-leaving');
+    root.classList.add('is-ready');
+  });
+  
   // Smooth leave animation for in-app navigation
   document.addEventListener(
     'click',
