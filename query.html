@@ -25,26 +25,24 @@
                 <h1 class="title">地铁路线查询</h1>
                 <p class="subtitle">输入站点名称后，选择偏好并查询。</p>
 
-                <div style="display:grid; gap:12px; margin-top:16px;">
-                    <div class="field station-picker" data-picker="start">
+                <div class="journey-planner" style="margin-top:18px;">
+                    <div class="field combo-field station-picker" data-picker="start">
                         <div class="label">出发站点</div>
-                        <input class="input station-search" type="text" id="start-station" placeholder="输入线路或站点" autocomplete="off" required>
-                        <div class="picker-row">
-                            <select class="input station-line-select" id="start-line-select"></select>
-                            <select class="input station-select" id="start-station-select"></select>
+                        <div class="combo-shell">
+                            <input class="input station-search" type="text" id="start-station" placeholder="输入线路或站点，例如 12 或 蓟门" autocomplete="off" required>
+                            <div class="combo-menu" id="start-station-menu" role="listbox"></div>
                         </div>
                     </div>
-                    <div class="field station-picker" data-picker="end">
+                    <div class="field combo-field station-picker" data-picker="end">
                         <div class="label">目的站点</div>
-                        <input class="input station-search" type="text" id="end-station" placeholder="输入线路或站点" autocomplete="off" required>
-                        <div class="picker-row">
-                            <select class="input station-line-select" id="end-line-select"></select>
-                            <select class="input station-select" id="end-station-select"></select>
+                        <div class="combo-shell">
+                            <input class="input station-search" type="text" id="end-station" placeholder="输入线路或站点，例如 19 或 牡丹园" autocomplete="off" required>
+                            <div class="combo-menu" id="end-station-menu" role="listbox"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid" style="margin-top:16px;">
+                <div class="preference-bar" style="margin-top:16px;">
                     <button class="btn btn-ghost btn-toggle is-selected" id="btn-shortest" type="button" onclick="setTravelRequirement('shortestTime')">最短时间</button>
                     <button class="btn btn-ghost btn-toggle" id="btn-transfers" type="button" onclick="setTravelRequirement('leastTransfers')">最少换乘</button>
                     <button class="btn btn-primary" id="query-button" type="button" onclick="getRoute()" disabled>查询路线</button>
