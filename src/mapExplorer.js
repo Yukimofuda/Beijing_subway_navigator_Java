@@ -9,7 +9,7 @@
     const stationList = document.getElementById('map-station-list');
     const stationPanel = document.getElementById('map-station-panel');
 
-    const stationAliases = {
+    let stationAliases = {
         Sihui_East: '四惠东',
         Sihui: '四惠',
         Dawanglu: '大望路',
@@ -222,9 +222,38 @@
             }
         }
 
-        const arrivals = Array.from(bestByDirection.values()).sort((first, second) => first.wait - second.wait).slice(0, 6);
+        const arrivals = Array.from(bestByDirection.values())
+            .sort((first, second) => {
+                const lineCompare = first.lineName.localeCompare(second.lineName, 'zh-CN');
+                if (lineCompare !== 0) return lineCompare;
+                return first.wait - second.wait;
+            })
+            .slice(0, 10);
         arrivalCache.set(cacheKey, arrivals);
         return arrivals;
+    }
+
+    function renderWaitText(arrival) {
+        if (arrival.wait <= 0) return `开往${arrival.directionLabel}方向的列车即将进站`;
+        if (arrival.wait > 30) return `开往${arrival.directionLabel}方向的下一班列车进站时间大于30分钟`;
+        return `开往${arrival.directionLabel}方向的列车还有 ${arrival.wait} 分钟进站`;
+    }
+
+    function renderGroupedArrivals(arrivals) {
+        const groups = new Map();
+        for (const arrival of arrivals) {
+            if (!groups.has(arrival.lineName)) groups.set(arrival.lineName, []);
+            groups.get(arrival.lineName).push(arrival);
+        }
+        return Array.from(groups.entries()).map(([lineName, items]) => `
+            <div class="arrival-line">
+                <strong>${lineName}</strong>
+                ${items
+                    .sort((first, second) => first.wait - second.wait)
+                    .map((arrival) => `<span>${renderWaitText(arrival)}</span>`)
+                    .join('')}
+            </div>
+        `).join('');
     }
 
     function renderArrivalHtml(stationName, fallbackTitle) {
@@ -247,12 +276,7 @@
 
         return `
             <div class="tooltip-title">${resolvedName}</div>
-            ${arrivals.map((arrival) => `
-                <div class="arrival-line">
-                    <strong>${arrival.lineName}</strong>
-                    <span>开往${arrival.directionLabel}方向的列车还有 ${arrival.wait} 分钟进站</span>
-                </div>
-            `).join('')}
+            ${renderGroupedArrivals(arrivals)}
         `;
     }
 
@@ -324,8 +348,18 @@
         stationPanel.innerHTML = renderArrivalHtml(stationName, stationName);
     }
 
+    async function loadAliasOverrides() {
+        try {
+            const response = await fetch('data/svg_station_aliases.json');
+            if (!response.ok) return {};
+            return response.json();
+        } catch (_) {
+            return {};
+        }
+    }
+
     async function loadMap() {
-        const [svgText, timetable, stations] = await Promise.all([
+        const [svgText, timetable, stations, aliasOverrides] = await Promise.all([
             fetch('Beijing_Subway_System_Map.svg').then((response) => {
                 if (!response.ok) throw new Error('SVG 加载失败');
                 return response.text();
@@ -334,9 +368,11 @@
             fetch('data/_station.json').then((response) => {
                 if (!response.ok) throw new Error('站点数据加载失败');
                 return response.json();
-            })
+            }),
+            loadAliasOverrides()
         ]);
 
+        stationAliases = { ...stationAliases, ...aliasOverrides };
         timetableData = timetable;
         stationData = stations;
         mapHost.innerHTML = svgText;
@@ -357,12 +393,19 @@
 
     viewport.addEventListener('wheel', (event) => {
         event.preventDefault();
-        zoomAt(event.deltaY < 0 ? 1.12 : 1 / 1.12, event.clientX, event.clientY);
+        if (event.ctrlKey || event.metaKey) {
+            zoomAt(event.deltaY < 0 ? 1.12 : 1 / 1.12, event.clientX, event.clientY);
+            return;
+        }
+        translateX -= event.deltaX;
+        translateY -= event.deltaY;
+        scheduleUpdate();
     }, { passive: false });
 
     viewport.addEventListener('dblclick', (event) => zoomAt(1.25, event.clientX, event.clientY));
 
     viewport.addEventListener('pointerdown', (event) => {
+        if (!event.shiftKey) return;
         isDragging = true;
         lastPointerX = event.clientX;
         lastPointerY = event.clientY;
