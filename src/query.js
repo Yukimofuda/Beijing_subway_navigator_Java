@@ -19,7 +19,12 @@ function simplifyLineName(lineName) {
     return String(lineName || '')
         .replace(/^地铁/, '')
         .replace(/\(.+\)$/, '')
+        .replace(/(内环|外环)$/, '')
         .trim();
+}
+
+function canonicalLineName(lineName) {
+    return simplifyLineName(lineName);
 }
 
 function buildStationPickerIndex(stations) {
@@ -28,7 +33,7 @@ function buildStationPickerIndex(stations) {
         const info = stations[stationName];
         if (!info || !Array.isArray(info.lines)) continue;
         for (const lineName of info.lines) {
-            const shortName = simplifyLineName(lineName);
+            const shortName = canonicalLineName(lineName);
             if (!lines.has(shortName)) {
                 lines.set(shortName, { label: shortName, fullNames: new Set(), stations: new Set() });
             }
@@ -54,15 +59,77 @@ function setupStationPickers() {
     if (!stationPickerIndex) return;
 
     const configs = [
-        { input: document.getElementById('start-station'), menu: document.getElementById('start-station-menu') },
-        { input: document.getElementById('end-station'), menu: document.getElementById('end-station-menu') },
+        {
+            input: document.getElementById('start-station'),
+            menu: document.getElementById('start-station-menu'),
+            lineSelect: document.getElementById('start-line-select'),
+            lineSummary: document.getElementById('start-line-summary'),
+        },
+        {
+            input: document.getElementById('end-station'),
+            menu: document.getElementById('end-station-menu'),
+            lineSelect: document.getElementById('end-line-select'),
+            lineSummary: document.getElementById('end-line-summary'),
+        },
     ];
 
-    function getMatches(keyword) {
+    function fillLineSelect(config) {
+        const selected = config.lineSelect.value;
+        config.lineSelect.innerHTML = [
+            '<option value="">全部线路</option>',
+            ...stationPickerIndex.lines.map((line) => `<option value="${line.label}">${line.label}</option>`),
+        ].join('');
+        if (selected && stationPickerIndex.lines.some((line) => line.label === selected)) {
+            config.lineSelect.value = selected;
+        }
+    }
+
+    function setLinePickerMode(config, mode, text) {
+        if (mode === 'summary') {
+            config.lineSelect.hidden = true;
+            config.lineSummary.hidden = false;
+            config.lineSummary.value = text;
+            return;
+        }
+        config.lineSummary.hidden = true;
+        config.lineSelect.hidden = false;
+    }
+
+    function selectedLine(config) {
+        return config.lineSelect.hidden ? '' : config.lineSelect.value;
+    }
+
+    function stationLines(stationName) {
+        return Array.from(new Set((stationData[stationName]?.lines || []).map(canonicalLineName))).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    }
+
+    function applyStationLineState(config, stationName) {
+        const lines = stationLines(stationName);
+        if (!lines.length) {
+            setLinePickerMode(config, 'select');
+            return;
+        }
+        if (lines.length === 1) {
+            setLinePickerMode(config, 'select');
+            config.lineSelect.value = lines[0];
+            return;
+        }
+        setLinePickerMode(config, 'summary', lines.join(' / '));
+    }
+
+    function clearStation(config) {
+        config.input.value = '';
+        delete config.input.dataset.station;
+        setLinePickerMode(config, 'select');
+    }
+
+    function getMatches(config, keyword) {
         const value = keyword.trim();
         const lower = value.toLowerCase();
+        const lineFilter = selectedLine(config);
         const lineMatches = stationPickerIndex.lines
             .filter((line) => {
+                if (lineFilter && line.label !== lineFilter) return false;
                 if (!value) return true;
                 return line.label.toLowerCase().includes(lower) || line.fullNames.some((name) => name.toLowerCase().includes(lower));
             })
@@ -71,7 +138,10 @@ function setupStationPickers() {
         const lineStationPool = new Set();
         for (const line of lineMatches) line.stations.forEach((stationName) => lineStationPool.add(stationName));
 
-        const directStations = stationPickerIndex.stations.filter((stationName) => !value || stationName.includes(value));
+        const allowedStations = lineFilter
+            ? stationPickerIndex.lines.find((line) => line.label === lineFilter)?.stations || []
+            : stationPickerIndex.stations;
+        const directStations = allowedStations.filter((stationName) => !value || stationName.includes(value));
         const stations = Array.from(new Set([...directStations, ...lineStationPool]))
             .sort((a, b) => {
                 const aStarts = value && a.startsWith(value) ? -1 : 0;
@@ -86,19 +156,21 @@ function setupStationPickers() {
 
     function renderMenu(config, keyword) {
         if (!config.input || !config.menu) return;
-        const { lineMatches, stations } = getMatches(keyword);
+        const { lineMatches, stations } = getMatches(config, keyword);
         const items = [];
 
-        for (const line of lineMatches) {
-            items.push(`
-                <button class="combo-option" type="button" data-kind="line" data-value="${line.label}">
-                    <span class="combo-kind">线路</span>${line.label}
-                </button>
-            `);
+        if (!selectedLine(config) && keyword.trim()) {
+            for (const line of lineMatches) {
+                items.push(`
+                    <button class="combo-option" type="button" data-kind="line" data-value="${line.label}">
+                        <span class="combo-kind">线路</span>${line.label}
+                    </button>
+                `);
+            }
         }
 
         for (const stationName of stations) {
-            const lines = stationData[stationName]?.lines?.map(simplifyLineName).join(' / ') || '站点';
+            const lines = stationLines(stationName).join(' / ') || '站点';
             items.push(`
                 <button class="combo-option" type="button" data-kind="station" data-value="${stationName}">
                     <span class="combo-kind">${lines}</span>${stationName}
@@ -113,13 +185,16 @@ function setupStationPickers() {
     function chooseStation(config, stationName) {
         config.input.value = stationName;
         config.input.dataset.station = stationName;
+        applyStationLineState(config, stationName);
         config.menu.classList.remove('is-open');
     }
 
     function showLineStations(config, lineLabel) {
         const line = stationPickerIndex.lines.find((item) => item.label === lineLabel);
         if (!line) return;
-        config.input.value = lineLabel;
+        setLinePickerMode(config, 'select');
+        config.lineSelect.value = lineLabel;
+        config.input.value = '';
         delete config.input.dataset.station;
         config.menu.innerHTML = line.stations
             .slice(0, 28)
@@ -133,12 +208,26 @@ function setupStationPickers() {
     }
 
     for (const config of configs) {
-        if (!config.input || !config.menu) continue;
+        if (!config.input || !config.menu || !config.lineSelect || !config.lineSummary) continue;
+        fillLineSelect(config);
 
         config.input.addEventListener('focus', () => renderMenu(config, config.input.value));
         config.input.addEventListener('input', () => {
             delete config.input.dataset.station;
+            setLinePickerMode(config, 'select');
+            if (stationData[config.input.value.trim()]) {
+                config.input.dataset.station = config.input.value.trim();
+                applyStationLineState(config, config.input.value.trim());
+            }
             renderMenu(config, config.input.value);
+        });
+        config.lineSelect.addEventListener('change', () => {
+            if (config.input.dataset.station) {
+                const lines = stationLines(config.input.dataset.station);
+                if (config.lineSelect.value && !lines.includes(config.lineSelect.value)) clearStation(config);
+            }
+            renderMenu(config, config.input.value);
+            config.menu.classList.remove('is-open');
         });
         renderMenu(config, config.input.value);
         config.menu.classList.remove('is-open');
