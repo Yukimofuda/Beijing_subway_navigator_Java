@@ -17,7 +17,7 @@
     };
 
     function simplifyLineName(lineName) {
-        return String(lineName || '').replace(/^地铁/, '').replace(/\(.+\)$/, '').trim();
+        return String(lineName || '').replace(/^地铁/, '').replace(/\(.+\)$/, '').replace(/(内环|外环)$/, '').trim();
     }
 
     function timeToMinutes(time) {
@@ -255,10 +255,12 @@
                 list.appendChild(text('div', '今日后续暂无发车', 'muted'));
             } else {
                 for (const departure of next) {
-                    const row = document.createElement('div');
+                    const row = document.createElement('button');
+                    row.type = 'button';
                     row.className = 'departure-item';
                     row.appendChild(text('span', `${departure.trainNo} · ${departure.firstStation}`));
                     row.appendChild(text('strong', departure.firstTime));
+                    row.addEventListener('click', () => renderTrainDetail(item.lineName, departure.direction, departure.trainNo));
                     list.appendChild(row);
                 }
             }
@@ -267,6 +269,49 @@
         }
 
         refs.detail.appendChild(grid);
+    }
+
+    function renderTrainDetail(lineName, direction, trainNo) {
+        const dayKey = refs.day.value;
+        const dayData = state.timetable[dayKey] || state.timetable['工作日'] || state.timetable['双休日'] || {};
+        const schedule = dayData[lineName]?.[direction]?.[trainNo];
+        clearNode(refs.detail);
+
+        if (!Array.isArray(schedule)) {
+            refs.detail.appendChild(text('div', '该车次时刻表未找到', 'muted'));
+            return;
+        }
+
+        const head = document.createElement('div');
+        head.className = 'detail-head';
+        const titleWrap = document.createElement('div');
+        titleWrap.appendChild(text('h1', `${lineName} · ${trainNo}`, 'title'));
+        titleWrap.appendChild(text('p', `${direction} · ${schedule[0][0]} ${schedule[0][1]} 始发 · 终到 ${schedule[schedule.length - 1][0]}`, 'subtitle'));
+        const backButton = document.createElement('button');
+        backButton.type = 'button';
+        backButton.className = 'btn btn-ghost';
+        backButton.textContent = '返回线路看板';
+        backButton.addEventListener('click', renderDetail);
+        head.appendChild(titleWrap);
+        head.appendChild(backButton);
+        refs.detail.appendChild(head);
+
+        const table = document.createElement('table');
+        table.innerHTML = `
+            <tr>
+                <th>序号</th>
+                <th>站点</th>
+                <th>到达时间</th>
+            </tr>
+            ${schedule.map((stop, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${stop[0]}</td>
+                    <td>${stop[1]}</td>
+                </tr>
+            `).join('')}
+        `;
+        refs.detail.appendChild(table);
     }
 
     function render() {
@@ -299,4 +344,3 @@
 
     init();
 })();
-
