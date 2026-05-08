@@ -26,20 +26,34 @@
                 <p class="subtitle">输入站点名称后，选择偏好并查询。</p>
 
                 <div class="journey-planner" style="margin-top:18px;">
-                    <div class="field combo-field station-picker" data-picker="start">
-                        <div class="label">出发站点</div>
-                        <div class="combo-shell">
-                            <input class="input station-search" type="text" id="start-station" placeholder="输入线路或站点，例如 12 或 蓟门" autocomplete="off" required>
-                            <div class="combo-menu" id="start-station-menu" role="listbox"></div>
+                    <section class="journey-card station-picker" data-picker="start">
+                        <div class="field line-field">
+                            <div class="label">出发线路</div>
+                            <select class="input station-line-select" id="start-line-select"></select>
+                            <input class="input line-summary" id="start-line-summary" type="text" readonly hidden>
                         </div>
-                    </div>
-                    <div class="field combo-field station-picker" data-picker="end">
-                        <div class="label">目的站点</div>
-                        <div class="combo-shell">
-                            <input class="input station-search" type="text" id="end-station" placeholder="输入线路或站点，例如 19 或 牡丹园" autocomplete="off" required>
-                            <div class="combo-menu" id="end-station-menu" role="listbox"></div>
+                        <div class="field combo-field">
+                            <div class="label">出发站点</div>
+                            <div class="combo-shell">
+                                <input class="input station-search" type="text" id="start-station" placeholder="先选线路或直接输入站点" autocomplete="off" required>
+                                <div class="combo-menu" id="start-station-menu" role="listbox"></div>
+                            </div>
                         </div>
-                    </div>
+                    </section>
+                    <section class="journey-card station-picker" data-picker="end">
+                        <div class="field line-field">
+                            <div class="label">目的线路</div>
+                            <select class="input station-line-select" id="end-line-select"></select>
+                            <input class="input line-summary" id="end-line-summary" type="text" readonly hidden>
+                        </div>
+                        <div class="field combo-field">
+                            <div class="label">目的站点</div>
+                            <div class="combo-shell">
+                                <input class="input station-search" type="text" id="end-station" placeholder="先选线路或直接输入站点" autocomplete="off" required>
+                                <div class="combo-menu" id="end-station-menu" role="listbox"></div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
 
                 <div class="preference-bar" style="margin-top:16px;">
