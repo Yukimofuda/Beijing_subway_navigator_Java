@@ -326,6 +326,23 @@ body::before {
   position: relative;
 }
 
+.journey-card {
+  display: grid;
+  grid-template-columns: minmax(148px, 0.42fr) minmax(0, 0.58fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid rgba(36, 49, 64, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.line-summary {
+  color: var(--brand-strong);
+  font-weight: 750;
+  background: rgba(0, 109, 119, 0.06);
+}
+
 .journey-planner::before {
   content: "";
   position: absolute;
@@ -382,6 +399,29 @@ body::before {
   padding: 8px 10px;
   border-radius: 9px;
   background: rgba(0, 109, 119, 0.06);
+}
+
+.line-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.line-choice-button {
+  min-height: 64px;
+  justify-content: flex-start;
+  border-radius: 16px;
+  padding: 16px 18px;
+  font-size: 16px;
+  background:
+    linear-gradient(135deg, rgba(0, 109, 119, 0.08), rgba(255, 255, 255, 0.94)),
+    #fff;
+}
+
+.direction-choice-panel {
+  display: grid;
+  gap: 12px;
 }
 
 .list {
@@ -524,6 +564,15 @@ tr:last-child td {
   transition: transform 140ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
+.route-tile::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 62%;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.96));
+  pointer-events: none;
+}
+
 .route-tile::before {
   content: "";
   position: absolute;
@@ -558,14 +607,38 @@ tr:last-child td {
   box-shadow: 0 16px 36px rgba(26, 39, 52, 0.18);
 }
 
+.tile-visual {
+  position: absolute;
+  inset: 0;
+  background-image: var(--tile-image);
+  background-size: cover;
+  background-position: center;
+  opacity: 0.22;
+  transform: scale(1.02);
+  transition: opacity 160ms ease, transform 180ms ease;
+}
+
+.route-tile:hover .tile-visual {
+  opacity: 0.32;
+  transform: scale(1.06);
+}
+
 .route-tile strong {
+  position: relative;
+  z-index: 1;
   font-size: 17px;
 }
 
 .route-tile span {
+  position: relative;
+  z-index: 1;
   margin-top: 5px;
   color: var(--muted);
   font-size: 12px;
+}
+
+.route-tile .tile-visual {
+  z-index: 0;
 }
 
 .tile-large {
@@ -606,6 +679,10 @@ tr:last-child td {
 
   .journey-planner,
   .route-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .journey-card {
     grid-template-columns: 1fr;
   }
 
