@@ -13,21 +13,58 @@
                 <div class="brand-title">北京地铁查询系统</div>
                 <div class="brand-subtitle">线路查询 · 时刻表 · 站点信息 · 线路图</div>
             </div>
-            <div class="pill">本地静态页面</div>
         </div>
 
-        <div class="card">
-            <div class="card-body">
-                <h1 class="title">开始使用</h1>
-                <p class="subtitle">选择你要查看的功能。页面背景图片保持不变，并对界面做了统一的现代化风格。</p>
-
-                <div class="grid">
-                    <a class="btn btn-primary" href="query.html">线路查询</a>
-                    <a class="btn btn-primary" href="lines.html" id="timetable-button">查看列车时刻表</a>
-                    <a class="btn btn-primary" href="stations.html">查看站点详细信息</a>
-                    <a class="btn btn-primary" href="Map.html">查看北京地铁线路图</a>
+        <div class="home-layout">
+            <section class="home-hero">
+                <div>
+                    <div class="pill">Beijing Subway Navigator</div>
+                    <h1 class="title" style="margin-top:16px;">把路线、时刻与站点信息放在一个清晰工作台里。</h1>
+                    <p class="subtitle">入口按真实出行任务组织，不再是线性按钮清单；优先呈现查询、地图、运行状态与站点服务。</p>
                 </div>
-            </div>
+                <div class="home-actions">
+                    <a class="btn btn-primary" href="query.html">开始规划路线</a>
+                    <a class="btn btn-ghost" href="Map.html">打开线路图</a>
+                </div>
+            </section>
+
+            <section class="route-cluster" aria-label="功能入口">
+                <a class="route-tile tile-large" href="query.html" style="--tile-image:url('index_background.png');">
+                    <span class="tile-visual" aria-hidden="true"></span>
+                    <strong>线路查询</strong>
+                    <span>最短时间 / 最少换乘 / 票价联动</span>
+                </a>
+                <a class="route-tile tile-wide" href="Map.html" style="--tile-image:url('Beijing_Subway_System_Map.svg');">
+                    <span class="tile-visual" aria-hidden="true"></span>
+                    <strong>交互线路图</strong>
+                    <span>拖拽缩放，悬浮查看站点下一班车</span>
+                </a>
+                <a class="route-tile tile-small" href="service_board.html" style="--tile-image:url('lines.png');">
+                    <span class="tile-visual" aria-hidden="true"></span>
+                    <strong>运行看板</strong>
+                    <span>线路状态与首末班概览</span>
+                </a>
+                <a class="route-tile tile-small" href="fare_calculator.html" style="--tile-image:url('index2_background.png');">
+                    <span class="tile-visual" aria-hidden="true"></span>
+                    <strong>票价测算</strong>
+                    <span>距离、费用与路径拆解</span>
+                </a>
+                <a class="route-tile tile-small" href="station_guide.html" style="--tile-image:url('station.png');">
+                    <span class="tile-visual" aria-hidden="true"></span>
+                    <strong>站点导览</strong>
+                    <span>换乘、相邻站与到站信息</span>
+                </a>
+                <a class="route-tile tile-wide" href="lines.html" id="timetable-button" style="--tile-image:url('lines.png');">
+                    <span class="tile-visual" aria-hidden="true"></span>
+                    <strong>列车时刻表</strong>
+                    <span>按线路进入车次与方向</span>
+                </a>
+                <a class="route-tile tile-wide" href="stations.html" style="--tile-image:url('station.png');">
+                    <span class="tile-visual" aria-hidden="true"></span>
+                    <strong>站点详细信息</strong>
+                    <span>从站点数据中浏览所有节点</span>
+                </a>
+            </section>
         </div>
     </div>
 

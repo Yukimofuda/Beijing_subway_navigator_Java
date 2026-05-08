@@ -1,77 +1,147 @@
-# Beijing Subway Navigator (HTML Version)
+# Beijing Subway Navigator HTML
 
-## 项目简介 | Introduction
+一个基于原生 HTML、CSS、JavaScript 与本地 Node 服务的北京地铁导航网页项目。新版将页面从“按钮清单式入口”重构为更接近公共交通网站的出行工作台，强调路线规划、线路图浏览、运行状态、票价测算与站点服务的一体化体验。
 
-本项目是一个基于 Web 的北京地铁导航系统，支持最短路径查询、最少换乘方案计算以及线路可视化展示。系统通过图论建模与路径搜索算法，实现高效的地铁路线规划。
+## 本版本重点
 
-This project is a web-based Beijing Subway navigation system. It supports shortest path queries, minimum transfer route planning, and subway line visualization. The system models the subway network as a graph and uses pathfinding algorithms for efficient route planning.
+- 全站 UI 重构：采用更简洁实用的公共交通服务风格，保留原有背景图片，重新设计按钮、卡片、阴影、选中态、悬浮态与页面转场。
+- 首页重排：功能入口按真实出行任务组织，不再按普通网格顺序堆叠按钮。
+- 查询页升级：出发站点与目的站点改为“输入框 + 线路/站点候选”合并控件，输入 `12` 可筛出 `12号线`，输入 `蓟门` 可筛出 `蓟门桥` 等站点。
+- 地图页重做：线路图改为大图浏览器，支持触控板双指平移、Ctrl/⌘ 滚动缩放、双击放大、缩放重置、站点悬浮高亮与中文站点下一班车查询。
+- 新增出行场景功能：运行看板、票价与距离测算、站点导览，覆盖实际乘客常见需求。
+- 鲁棒性增强：统一加载 `data/timetable.workday.json` 与 `data/timetable.weekend.json`，修复浏览器返回后页面动画状态导致面板不可见的问题。
 
----
+## 设计参考
 
-## 功能特性 | Features
+本版本的页面组织参考了新加坡、香港、台北公共交通网站常见的信息架构：先解决旅客的核心任务，再提供线路状态、票价、站点与地图辅助信息。
 
-- 最短时间路径查询（基于 Dijkstra 算法）
-- 最少换乘路径规划
-- 地铁线路与站点可视化
-- 支持动态添加/删除地铁线路（可扩展）
-- JSON 数据驱动（站点、线路、时间表）
+- Singapore LTA Train System Map: https://www.lta.gov.sg/content/ltagov/en/map/train.html
+- SimplyGo / TransitLink: https://www.simplygo.com.sg/
+- Hong Kong MTR: https://www.mtr.com.hk/
+- Taipei Metro: https://english.metro.taipei/
 
-- Shortest-time route planning (based on Dijkstra algorithm)
-- Minimum-transfer route optimization
-- Visualization of subway lines and stations
-- Dynamic line management (add/remove lines)
-- JSON-based data (stations, lines, timetable)
+## 页面入口
 
----
+- `index.html`：新版出行工作台首页
+- `query.html`：线路查询，支持最短时间与最少换乘
+- `Map.html`：交互式北京地铁线路图与站点下一班车查询
+- `service_board.html`：线路运行看板
+- `fare_calculator.html`：票价与距离测算
+- `station_guide.html`：站点导览
+- `lines.html`：按线路查看列车时刻表
+- `trains.html`：按线路查看车次
+- `train_details.html`：车次详情
+- `stations.html`：站点与线路信息入口
+- `line_details.html`：线路站点详情
+- `timetable.html`：日历式时刻表浏览
 
-## 项目结构 | Project Structure
+## 数据文件
 
-```text
-Beijing_subway_navigator_html/
-├── index.html              # 主页面入口（用户交互界面） | Main entry point (UI)
-│
-├── css/                    # 样式文件目录 | Stylesheets
-│   └── *.css               # 页面布局与视觉设计 | Layout & styling
-│
-├── js/                     # 核心逻辑模块 | Core logic modules
-│   ├── graph.js            # 地铁网络图建模（节点/边定义） | Graph modeling (nodes & edges)
-│   ├── dijkstra.js         # 最短路径算法实现 | Dijkstra shortest path algorithm
-│   ├── query.js            # 路径查询与调度逻辑 | Route query & control logic
-│
-├── data/                   # 数据文件（JSON） | Data files (JSON)
-│   ├── stations.json       # 站点信息（名称、换乘关系等） | Station data (names, transfers)
-│   ├── lines.json          # 地铁线路拓扑结构 | Subway line topology
-│   ├── timetable.json      # 运行时间/班次数据 | Timetable / schedule data
-│
-└── README.md               # 项目说明文档 | Project documentation
-```
----
+数据位于 `data/`：
 
-## 核心算法 | Core Algorithm
+- `_station.json`：站点、线路、区间距离与速度数据
+- `timetable.workday.json`：工作日时刻表
+- `timetable.weekend.json`：双休日时刻表
 
-系统采用 **Dijkstra 算法** 进行最短路径计算：
+所有 JSON 文件当前均小于 GitHub 单文件 25MB 上传限制：
 
-- 将地铁系统建模为加权图（站点为节点，线路为边）
-- 权重可表示时间或换乘成本
-- 支持不同策略：
-  - 最短时间
-  - 最少换乘
+- `_station.json`：约 0.21MB
+- `timetable.weekend.json`：约 11.13MB
+- `timetable.workday.json`：约 14.73MB
 
-The system uses **Dijkstra’s algorithm** for shortest path computation:
+## 快速开始
 
-- Subway system is modeled as a weighted graph
-- Nodes = stations, edges = connections
-- Weights represent travel time or transfer cost
-- Supports multiple optimization strategies:
-  - Shortest time
-  - Minimum transfers
-
----
-
-## 使用方法 | Usage
-
-### 克隆项目 | Clone
+推荐通过本地 HTTP 服务访问，不要直接双击 HTML 文件打开。
 
 ```bash
-git clone https://github.com/Yukimofuda/Beijing_subway_navigator_html.git
-cd Beijing_subway_navigator_html
+node src/Node.js
+```
+
+然后打开：
+
+```text
+http://localhost:3000
+```
+
+如果 `3000` 端口被占用，服务会自动尝试后续端口。
+
+也可以使用脚本启动：
+
+```bash
+./scripts/start_local_server.sh
+```
+
+## 验证
+
+运行冒烟测试：
+
+```bash
+node scripts/smoke_test_pages.js
+```
+
+测试覆盖：
+
+- 线路列表渲染
+- 站点列表渲染
+- `19号线` 车次渲染
+- 查询页数据加载与路线结果渲染
+- 地图页交互脚本结构
+- JSON 文件大小检查
+
+检查 SVG 英文站点与中文站点的匹配覆盖率：
+
+```bash
+node scripts/audit_svg_station_mapping.js
+```
+
+如果输出 `Unmatched aliases`，在 `data/svg_station_aliases.json` 中按如下格式补充即可：
+
+```json
+{
+  "English_Station_Key": "中文站点名"
+}
+```
+
+`English_Station_Key` 来自脚本输出，中文站点名必须和 `data/_station.json` 中的站名完全一致。
+
+## 项目结构
+
+```text
+.
+├── data/
+│   ├── _station.json
+│   ├── timetable.weekend.json
+│   └── timetable.workday.json
+├── scripts/
+│   ├── smoke_test_pages.js
+│   ├── split_timetable.js
+│   └── start_local_server.sh
+├── src/
+│   ├── Node.js
+│   ├── fareCalculator.js
+│   ├── lineManagement.js
+│   ├── line_details.js
+│   ├── lines.js
+│   ├── mapExplorer.js
+│   ├── query.js
+│   ├── serviceBoard.js
+│   ├── stationGuide.js
+│   ├── stations.js
+│   ├── timetableLoader.js
+│   ├── trains.js
+│   └── ui.js
+├── style/
+│   └── styles.css
+├── index.html
+├── query.html
+├── Map.html
+├── service_board.html
+├── fare_calculator.html
+└── station_guide.html
+```
+
+## 说明
+
+- 地图页会加载 SVG 并为英文站点标注建立悬浮命中区；能匹配到中文站名的站点会显示下一班车信息，未匹配的站点可通过左侧中文站点搜索框查询。
+- 修改站点或时刻表数据后，建议重新运行 `node scripts/smoke_test_pages.js`。
+- 本地改动未提交，提交到 GitHub 前请先检查 `git status`。

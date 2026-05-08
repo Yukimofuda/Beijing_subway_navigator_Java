@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>站点导览</title>
+    <link rel="stylesheet" href="style/styles.css">
+    <style>
+        .guide-shell {
+            width: min(1120px, 100%);
+            display: grid;
+            grid-template-columns: 360px minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .guide-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 12px;
+            max-height: calc(100vh - 290px);
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .station-row {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            padding: 10px 12px;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .station-row.is-selected,
+        .station-row:hover {
+            border-color: rgba(26, 115, 232, 0.45);
+            box-shadow: 0 1px 3px rgba(60, 64, 67, 0.2);
+        }
+
+        .station-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .station-tile {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            padding: 12px;
+        }
+
+        .detail-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 14px;
+        }
+
+        .line-row-name {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .line-row-meta {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 3px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 500;
+            line-height: 1.1;
+        }
+
+        .metric-label {
+            margin-top: 4px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .neighbor-list,
+        .line-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 900px) {
+            .guide-shell,
+            .station-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body style="background-image: url('station.png');">
+    <div class="page">
+        <div class="topbar">
+            <div class="brand">
+                <div class="brand-title">站点导览</div>
+                <div class="brand-subtitle">换乘 · 相邻站 · 首末班</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <a class="btn btn-ghost" href="fare_calculator.html">票价测算</a>
+                <a class="btn btn-ghost" href="index.html">返回首页</a>
+            </div>
+        </div>
+
+        <div class="guide-shell">
+            <section class="card">
+                <div class="card-body">
+                    <div class="field">
+                        <div class="label">站点或线路</div>
+                        <input class="input" id="station-guide-search" type="search" placeholder="搜索站点、线路" autocomplete="off">
+                    </div>
+                    <div class="guide-list" id="station-guide-list"></div>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="card-body">
+                    <div id="station-guide-detail" class="muted">加载中</div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script defer src="src/ui.js"></script>
+    <script defer src="src/timetableLoader.js"></script>
+    <script defer src="src/stationGuide.js"></script>
+</body>
+</html>

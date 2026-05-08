@@ -19,7 +19,12 @@ function simplifyLineName(lineName) {
     return String(lineName || '')
         .replace(/^地铁/, '')
         .replace(/\(.+\)$/, '')
+        .replace(/(内环|外环)$/, '')
         .trim();
+}
+
+function canonicalLineName(lineName) {
+    return simplifyLineName(lineName);
 }
 
 function buildStationPickerIndex(stations) {
@@ -28,7 +33,7 @@ function buildStationPickerIndex(stations) {
         const info = stations[stationName];
         if (!info || !Array.isArray(info.lines)) continue;
         for (const lineName of info.lines) {
-            const shortName = simplifyLineName(lineName);
+            const shortName = canonicalLineName(lineName);
             if (!lines.has(shortName)) {
                 lines.set(shortName, { label: shortName, fullNames: new Set(), stations: new Set() });
             }
@@ -50,91 +55,216 @@ function buildStationPickerIndex(stations) {
     };
 }
 
-function fillSelect(select, items, placeholder) {
-    if (!select) return;
-    const options = [`<option value="">${placeholder}</option>`];
-    for (const item of items) {
-        const value = typeof item === 'string' ? item : item.value;
-        const label = typeof item === 'string' ? item : item.label;
-        options.push(`<option value="${value}">${label}</option>`);
-    }
-    select.innerHTML = options.join('');
-}
-
 function setupStationPickers() {
     if (!stationPickerIndex) return;
 
     const configs = [
         {
             input: document.getElementById('start-station'),
+            menu: document.getElementById('start-station-menu'),
             lineSelect: document.getElementById('start-line-select'),
-            stationSelect: document.getElementById('start-station-select'),
+            lineSummary: document.getElementById('start-line-summary'),
         },
         {
             input: document.getElementById('end-station'),
+            menu: document.getElementById('end-station-menu'),
             lineSelect: document.getElementById('end-line-select'),
-            stationSelect: document.getElementById('end-station-select'),
+            lineSummary: document.getElementById('end-line-summary'),
         },
     ];
 
-    const lineOptions = stationPickerIndex.lines.map((line) => ({ value: line.label, label: line.label }));
+    function fillLineSelect(config) {
+        const selected = config.lineSelect.value;
+        config.lineSelect.innerHTML = [
+            '<option value="">全部线路</option>',
+            ...stationPickerIndex.lines.map((line) => `<option value="${line.label}">${line.label}</option>`),
+        ].join('');
+        if (selected && stationPickerIndex.lines.some((line) => line.label === selected)) {
+            config.lineSelect.value = selected;
+        }
+    }
+
+    function setLinePickerMode(config, mode, text) {
+        if (mode === 'summary') {
+            config.lineSelect.hidden = true;
+            config.lineSummary.hidden = false;
+            config.lineSummary.value = text;
+            return;
+        }
+        config.lineSummary.hidden = true;
+        config.lineSelect.hidden = false;
+    }
+
+    function selectedLine(config) {
+        return config.lineSelect.hidden ? '' : config.lineSelect.value;
+    }
+
+    function stationLines(stationName) {
+        return Array.from(new Set((stationData[stationName]?.lines || []).map(canonicalLineName))).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+    }
+
+    function applyStationLineState(config, stationName) {
+        const lines = stationLines(stationName);
+        if (!lines.length) {
+            setLinePickerMode(config, 'select');
+            return;
+        }
+        if (lines.length === 1) {
+            setLinePickerMode(config, 'select');
+            config.lineSelect.value = lines[0];
+            return;
+        }
+        setLinePickerMode(config, 'summary', lines.join(' / '));
+    }
+
+    function clearStation(config) {
+        config.input.value = '';
+        delete config.input.dataset.station;
+        setLinePickerMode(config, 'select');
+    }
+
+    function getMatches(config, keyword) {
+        const value = keyword.trim();
+        const lower = value.toLowerCase();
+        const lineFilter = selectedLine(config);
+        const lineMatches = stationPickerIndex.lines
+            .filter((line) => {
+                if (lineFilter && line.label !== lineFilter) return false;
+                if (!value) return true;
+                return line.label.toLowerCase().includes(lower) || line.fullNames.some((name) => name.toLowerCase().includes(lower));
+            })
+            .slice(0, 7);
+
+        const lineStationPool = new Set();
+        for (const line of lineMatches) line.stations.forEach((stationName) => lineStationPool.add(stationName));
+
+        const allowedStations = lineFilter
+            ? stationPickerIndex.lines.find((line) => line.label === lineFilter)?.stations || []
+            : stationPickerIndex.stations;
+        const directStations = allowedStations.filter((stationName) => !value || stationName.includes(value));
+        const stations = Array.from(new Set([...directStations, ...lineStationPool]))
+            .sort((a, b) => {
+                const aStarts = value && a.startsWith(value) ? -1 : 0;
+                const bStarts = value && b.startsWith(value) ? -1 : 0;
+                if (aStarts !== bStarts) return aStarts - bStarts;
+                return a.localeCompare(b, 'zh-CN');
+            })
+            .slice(0, 16);
+
+        return { lineMatches, stations };
+    }
+
+    function renderMenu(config, keyword) {
+        if (!config.input || !config.menu) return;
+        const { lineMatches, stations } = getMatches(config, keyword);
+        const items = [];
+
+        if (!selectedLine(config) && keyword.trim()) {
+            for (const line of lineMatches) {
+                items.push(`
+                    <button class="combo-option" type="button" data-kind="line" data-value="${line.label}">
+                        <span class="combo-kind">线路</span>${line.label}
+                    </button>
+                `);
+            }
+        }
+
+        for (const stationName of stations) {
+            const lines = stationLines(stationName).join(' / ') || '站点';
+            items.push(`
+                <button class="combo-option" type="button" data-kind="station" data-value="${stationName}">
+                    <span class="combo-kind">${lines}</span>${stationName}
+                </button>
+            `);
+        }
+
+        config.menu.innerHTML = items.join('') || '<div class="combo-option muted">没有匹配站点</div>';
+        config.menu.classList.add('is-open');
+    }
+
+    function chooseStation(config, stationName) {
+        config.input.value = stationName;
+        config.input.dataset.station = stationName;
+        applyStationLineState(config, stationName);
+        config.menu.classList.remove('is-open');
+    }
+
+    function showLineStations(config, lineLabel) {
+        const line = stationPickerIndex.lines.find((item) => item.label === lineLabel);
+        if (!line) return;
+        setLinePickerMode(config, 'select');
+        config.lineSelect.value = lineLabel;
+        config.input.value = '';
+        delete config.input.dataset.station;
+        config.menu.innerHTML = line.stations
+            .slice(0, 28)
+            .map((stationName) => `
+                <button class="combo-option" type="button" data-kind="station" data-value="${stationName}">
+                    <span class="combo-kind">${line.label}</span>${stationName}
+                </button>
+            `)
+            .join('');
+        config.menu.classList.add('is-open');
+    }
 
     for (const config of configs) {
-        fillSelect(config.lineSelect, lineOptions, '全部线路');
-        fillSelect(config.stationSelect, stationPickerIndex.stations, '全部站点');
+        if (!config.input || !config.menu || !config.lineSelect || !config.lineSummary) continue;
+        fillLineSelect(config);
 
-        const refresh = () => {
-            const keyword = config.input.value.trim();
-            const selectedLine = config.lineSelect.value;
-            const keywordLower = keyword.toLowerCase();
-            const matchedLines = stationPickerIndex.lines.filter((line) => {
-                if (selectedLine && line.label !== selectedLine) return false;
-                if (!keyword) return true;
-                return line.label.toLowerCase().includes(keywordLower) || line.fullNames.some((name) => name.toLowerCase().includes(keywordLower));
-            });
-            const lineCandidates = matchedLines.length ? matchedLines : stationPickerIndex.lines.filter((line) => !selectedLine || line.label === selectedLine);
-
-            const stationPool = new Set();
-            for (const line of lineCandidates) {
-                line.stations.forEach((stationName) => stationPool.add(stationName));
+        config.input.addEventListener('focus', () => renderMenu(config, config.input.value));
+        config.input.addEventListener('input', () => {
+            delete config.input.dataset.station;
+            setLinePickerMode(config, 'select');
+            if (stationData[config.input.value.trim()]) {
+                config.input.dataset.station = config.input.value.trim();
+                applyStationLineState(config, config.input.value.trim());
             }
-            const stationCandidates = Array.from(stationPool)
-                .filter((stationName) => !keyword || stationName.includes(keyword) || lineCandidates.some((line) => line.label.includes(keyword) && line.stations.includes(stationName)))
-                .sort((a, b) => a.localeCompare(b, 'zh-CN'));
-
-            fillSelect(
-                config.lineSelect,
-                (keyword ? lineCandidates : stationPickerIndex.lines).map((line) => ({ value: line.label, label: line.label })),
-                '全部线路'
-            );
-            if (selectedLine && Array.from(config.lineSelect.options).some((option) => option.value === selectedLine)) {
-                config.lineSelect.value = selectedLine;
-            }
-            fillSelect(config.stationSelect, stationCandidates.length ? stationCandidates : stationPickerIndex.stations, '全部站点');
-            if (stationCandidates.length === 1) {
-                config.stationSelect.value = stationCandidates[0];
-            }
-            if (lineCandidates.length === 1 && keyword) {
-                config.lineSelect.value = lineCandidates[0].label;
-            }
-        };
-
-        config.input.addEventListener('input', refresh);
-        config.lineSelect.addEventListener('change', () => {
-            const line = stationPickerIndex.lines.find((item) => item.label === config.lineSelect.value);
-            fillSelect(config.stationSelect, line ? line.stations : stationPickerIndex.stations, '全部站点');
+            renderMenu(config, config.input.value);
         });
-        config.stationSelect.addEventListener('change', () => {
-            if (config.stationSelect.value) config.input.value = config.stationSelect.value;
+        config.lineSelect.addEventListener('change', () => {
+            if (config.input.dataset.station) {
+                const lines = stationLines(config.input.dataset.station);
+                if (config.lineSelect.value && !lines.includes(config.lineSelect.value)) clearStation(config);
+            }
+            renderMenu(config, config.input.value);
+            config.menu.classList.remove('is-open');
+        });
+        renderMenu(config, config.input.value);
+        config.menu.classList.remove('is-open');
+
+        config.menu.addEventListener('click', (event) => {
+            const option = event.target.closest('.combo-option');
+            if (!option || !option.dataset.value) return;
+            if (option.dataset.kind === 'line') {
+                showLineStations(config, option.dataset.value);
+                return;
+            }
+            chooseStation(config, option.dataset.value);
         });
     }
+
+    document.addEventListener('click', (event) => {
+        for (const config of configs) {
+            if (!config.input || !config.menu) continue;
+            if (config.input.contains(event.target) || config.menu.contains(event.target)) continue;
+            config.menu.classList.remove('is-open');
+        }
+    });
 }
 
-function resolvePickerStation(inputId, selectId) {
-    const inputValue = document.getElementById(inputId).value.trim();
-    const selectValue = document.getElementById(selectId).value.trim();
+function resolvePickerStation(inputId) {
+    const input = document.getElementById(inputId);
+    const inputValue = input.value.trim();
+    if (input.dataset.station && stationData[input.dataset.station]) return input.dataset.station;
     if (stationData && stationData[inputValue]) return inputValue;
-    return selectValue || inputValue;
+
+    const matches = Object.keys(stationData || {}).filter((stationName) => stationName.includes(inputValue));
+    if (matches.length === 1) {
+        input.value = matches[0];
+        input.dataset.station = matches[0];
+        return matches[0];
+    }
+    return inputValue;
 }
 
 // 设置出行模式
@@ -838,8 +968,8 @@ return path; // 返回重建的路径（站点数组）
 
 // 查询地铁路线的函数
 function getRoute() {
-const startStation = resolvePickerStation('start-station', 'start-station-select'); // 获取用户输入或选择的起始站
-const endStation = resolvePickerStation('end-station', 'end-station-select'); // 获取用户输入或选择的目的站
+const startStation = resolvePickerStation('start-station'); // 获取用户输入或选择的起始站
+const endStation = resolvePickerStation('end-station'); // 获取用户输入或选择的目的站
 
 // 检查是否输入了起始站和目的站
 if (!startStation || !endStation) {
@@ -867,7 +997,7 @@ if (travelRequirement === '最短时间') {
 
 // 如果没有找到合适的路线
 if (!routeResult) {
-    resultDiv.innerHTML = '<p>未找到合适的路线！请检查站点名称或时刻表数据。</p>';
+    resultDiv.innerHTML = '<div class="route-path-card">未找到合适的路线，请检查站点名称或时刻表数据。</div>';
     return;
 }
 
@@ -875,7 +1005,7 @@ if (!routeResult) {
 const actualTime = calculateActualTime(startStation, endStation, routeResult.path, currentTimeInMinutes);
 // 如果无法计算实际时间
 if (!actualTime) {
-    resultDiv.innerHTML = '<p>无法计算实际时间！请检查时刻表数据。</p>';
+    resultDiv.innerHTML = '<div class="route-path-card">无法计算实际时间，请检查时刻表数据。</div>';
     return;
 }
 
@@ -889,25 +1019,26 @@ const simplifiedLines = simplifyLines(segments.map(s => s.line));
 const transferCount = simplifiedLines.length - 1;
 
 // 构建每站到站时间的HTML
-let stationTimesHTML = '<h4>每站到站时间：</h4><ul>';
+let stationTimesHTML = '<div class="route-path-card"><strong>每站到站时间</strong><ul class="station-time-list">';
 stationTimes.forEach(({ station, time }) => {
-    stationTimesHTML += `<li>${station}: ${minutesToTimeString(time)}</li>`;
+    stationTimesHTML += `<li><span>${station}</span><strong>${minutesToTimeString(time)}</strong></li>`;
 });
-stationTimesHTML += '</ul>';
+stationTimesHTML += '</ul></div>';
 
 // 将查询结果显示在页面上
 resultDiv.innerHTML = `
-    <h3>${travelRequirement}乘车方案：</h3>
-    <p>当前时间：${minutesToTimeString(currentTimeInMinutes)}</p>
-    <p>起始站：${startStation}</p>
-    <p>目的站：${endStation}</p>
-    <p>预计出发时间：${minutesToTimeString(startTime)}</p>
-    <p>预计到达时间：${minutesToTimeString(endTime)}</p>
-    <p>总时间：${endTime - currentTimeInMinutes} 分钟</p>
-    <p>所需费用：${fare} 元</p>
-    <p>换乘次数：${transferCount < 0 ? 0 : transferCount}</p>
-    <p>线路：${simplifiedLines.join(' → ')}</p>
-    <p>路径：${path.join(' → ')}</p>
+    <div class="route-path-card">
+        <div class="pill">${travelRequirement}乘车方案</div>
+        <h3 style="margin:10px 0 0;">${startStation} → ${endStation}</h3>
+        <p class="subtitle">线路：${simplifiedLines.join(' → ')}</p>
+    </div>
+    <div class="route-summary">
+        <div class="route-summary-card"><span class="combo-kind">预计出发</span><strong>${minutesToTimeString(startTime)}</strong></div>
+        <div class="route-summary-card"><span class="combo-kind">预计到达</span><strong>${minutesToTimeString(endTime)}</strong></div>
+        <div class="route-summary-card"><span class="combo-kind">总时间</span><strong>${endTime - currentTimeInMinutes} 分钟</strong></div>
+        <div class="route-summary-card"><span class="combo-kind">费用 / 换乘</span><strong>${fare} 元 · ${transferCount < 0 ? 0 : transferCount} 次</strong></div>
+    </div>
+    <div class="route-path-card"><strong>路径</strong><p class="subtitle">${path.join(' → ')}</p></div>
     ${stationTimesHTML}
 `;
 }
