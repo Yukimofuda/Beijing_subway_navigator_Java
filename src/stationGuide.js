@@ -12,7 +12,7 @@
     };
 
     function simplifyLineName(lineName) {
-        return String(lineName || '').replace(/^地铁/, '').replace(/\(.+\)$/, '').trim();
+        return String(lineName || '').replace(/^地铁/, '').replace(/\(.+\)$/, '').replace(/(内环|外环)$/, '').trim();
     }
 
     function clearNode(node) {
