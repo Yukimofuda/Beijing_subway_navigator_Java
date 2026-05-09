@@ -343,22 +343,6 @@ body::before {
   background: rgba(0, 109, 119, 0.06);
 }
 
-.journey-planner::before {
-  content: "";
-  position: absolute;
-  left: calc(50% - 8px);
-  top: 42px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid rgba(36, 49, 64, 0.16);
-  background:
-    linear-gradient(90deg, transparent 44%, var(--accent) 44%, var(--accent) 56%, transparent 56%),
-    #fff;
-  box-shadow: var(--shadow);
-  z-index: 2;
-}
-
 .route-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -399,6 +383,64 @@ body::before {
   padding: 8px 10px;
   border-radius: 9px;
   background: rgba(0, 109, 119, 0.06);
+}
+
+.route-line-visual {
+  display: grid;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.route-line-block {
+  display: grid;
+  gap: 8px;
+}
+
+.route-line-label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  color: var(--text);
+}
+
+.route-line-label strong {
+  font-weight: 900;
+}
+
+.route-line-label span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.transfer-note {
+  color: var(--accent) !important;
+  font-weight: 800;
+}
+
+.route-line-track {
+  height: 0.5em;
+  border-radius: 999px;
+  background: var(--line-color);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--line-color) 35%, transparent);
+}
+
+.route-station-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.route-station {
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.route-station.is-terminal {
+  color: var(--text);
+  font-weight: 800;
 }
 
 .line-choice-grid {

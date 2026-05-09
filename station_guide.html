@@ -115,10 +115,20 @@
         <div class="guide-shell">
             <section class="card">
                 <div class="card-body">
-                    <div class="field">
-                        <div class="label">站点或线路</div>
-                        <input class="input" id="station-guide-search" type="search" placeholder="搜索站点、线路" autocomplete="off">
-                    </div>
+                    <section class="journey-card station-picker" style="grid-template-columns:1fr;">
+                        <div class="field line-field">
+                            <div class="label">线路</div>
+                            <select class="input" id="station-guide-line"></select>
+                            <input class="input line-summary" id="station-guide-line-summary" type="text" readonly hidden>
+                        </div>
+                        <div class="field combo-field">
+                            <div class="label">站点</div>
+                            <div class="combo-shell">
+                                <input class="input" id="station-guide-search" type="search" placeholder="输入或选择站点" autocomplete="off">
+                                <div class="combo-menu" id="station-guide-menu"></div>
+                            </div>
+                        </div>
+                    </section>
                     <div class="guide-list" id="station-guide-list"></div>
                 </div>
             </section>
@@ -133,6 +143,7 @@
 
     <script defer src="src/ui.js"></script>
     <script defer src="src/timetableLoader.js"></script>
+    <script defer src="src/transitData.js"></script>
     <script defer src="src/stationGuide.js"></script>
 </body>
 </html>

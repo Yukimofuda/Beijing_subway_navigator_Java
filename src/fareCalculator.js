@@ -1,16 +1,23 @@
 (function () {
     const refs = {
         start: document.getElementById('fare-start'),
+        startMenu: document.getElementById('fare-start-menu'),
+        startLine: document.getElementById('fare-start-line'),
+        startLineSummary: document.getElementById('fare-start-line-summary'),
         end: document.getElementById('fare-end'),
+        endMenu: document.getElementById('fare-end-menu'),
+        endLine: document.getElementById('fare-end-line'),
+        endLineSummary: document.getElementById('fare-end-line-summary'),
         passenger: document.getElementById('fare-passenger'),
         period: document.getElementById('fare-period'),
         calc: document.getElementById('fare-calc'),
         swap: document.getElementById('fare-swap'),
-        stations: document.getElementById('fare-stations'),
         output: document.getElementById('fare-output'),
     };
 
     let stationData = null;
+    let startPicker = null;
+    let endPicker = null;
 
     function km(distanceMeters) {
         return distanceMeters / 1000;
@@ -29,12 +36,10 @@
     }
 
     function fareMultiplier() {
-        const passenger = refs.passenger.value;
-        const period = refs.period.value;
         let multiplier = 1;
-        if (passenger === 'student') multiplier *= 0.5;
-        if (passenger === 'concession') multiplier *= 0.75;
-        if (period === 'offpeak') multiplier *= 0.9;
+        if (refs.passenger.value === 'student') multiplier *= 0.5;
+        if (refs.passenger.value === 'concession') multiplier *= 0.75;
+        if (refs.period.value === 'offpeak') multiplier *= 0.9;
         return multiplier;
     }
 
@@ -43,26 +48,21 @@
         const previous = {};
         const queue = [];
         const visited = new Set();
-
         for (const station of Object.keys(stationData)) {
             distances[station] = Infinity;
             previous[station] = null;
         }
-
         distances[start] = 0;
         queue.push(start);
-
         while (queue.length) {
             queue.sort((a, b) => distances[a] - distances[b]);
             const current = queue.shift();
             if (visited.has(current)) continue;
             visited.add(current);
             if (current === end) break;
-
             for (const edge of stationData[current].edge || []) {
                 const next = edge.station;
-                const weight = Number(edge.distance) || 0;
-                const candidate = distances[current] + weight;
+                const candidate = distances[current] + (Number(edge.distance) || 0);
                 if (candidate < distances[next]) {
                     distances[next] = candidate;
                     previous[next] = { station: current, edge };
@@ -70,16 +70,13 @@
                 }
             }
         }
-
         if (!Number.isFinite(distances[end])) return null;
-
         const path = [];
         let cursor = end;
         while (cursor) {
             path.unshift(cursor);
             cursor = previous[cursor] ? previous[cursor].station : null;
         }
-
         return { path, distance: distances[end], previous };
     }
 
@@ -89,15 +86,14 @@
             const to = route.path[index];
             const item = route.previous[to];
             if (!item) continue;
-            const from = item.station;
-            const line = item.edge.line;
+            const line = window.TransitData.simplifyLineName(item.edge.line);
             const distance = Number(item.edge.distance) || 0;
             const last = segments[segments.length - 1];
             if (last && last.line === line) {
                 last.to = to;
                 last.distance += distance;
             } else {
-                segments.push({ line, from, to, distance });
+                segments.push({ line, from: item.station, to, distance });
             }
         }
         return segments;
@@ -108,26 +104,16 @@
         const fare = baseFare(distanceKm) * fareMultiplier();
         const estimatedMinutes = Math.max(1, Math.round(distanceKm * 2.2));
         const segments = compressSegments(route);
-
         refs.output.innerHTML = `
             <div class="fare-result">
-                <div class="fare-card">
-                    <div class="fare-value">${formatMoney(fare)}</div>
-                    <div class="metric-label">预计票价</div>
-                </div>
-                <div class="fare-card">
-                    <div class="fare-value">${distanceKm.toFixed(1)}km</div>
-                    <div class="metric-label">最短距离</div>
-                </div>
-                <div class="fare-card">
-                    <div class="fare-value">${estimatedMinutes}分钟</div>
-                    <div class="metric-label">估算耗时</div>
-                </div>
+                <div class="fare-card"><div class="fare-value">${formatMoney(fare)}</div><div class="metric-label">预计票价</div></div>
+                <div class="fare-card"><div class="fare-value">${distanceKm.toFixed(1)}km</div><div class="metric-label">最短距离</div></div>
+                <div class="fare-card"><div class="fare-value">${estimatedMinutes}分钟</div><div class="metric-label">估算耗时</div></div>
             </div>
             <div class="route-steps">
                 ${segments.map((segment) => `
-                    <div class="route-step">
-                        <strong>${segment.line.replace(/^地铁/, '').replace(/\(.+\)$/, '')}</strong>
+                    <div class="route-step" style="border-left:8px solid ${window.TransitData.lineColor(segment.line)}">
+                        <strong>${segment.line}</strong>
                         <span>${segment.from} → ${segment.to}</span>
                         <span class="muted">${km(segment.distance).toFixed(1)}km</span>
                     </div>
@@ -137,14 +123,14 @@
     }
 
     function calculate() {
-        const start = refs.start.value.trim();
-        const end = refs.end.value.trim();
+        const start = startPicker?.resolve();
+        const end = endPicker?.resolve();
         if (!stationData || !stationData[start] || !stationData[end] || start === end) {
             refs.output.textContent = '请选择有效且不同的站点';
             return;
         }
-
         const route = dijkstra(start, end);
+        refs.output.textContent = '';
         if (!route) {
             refs.output.textContent = '未找到可用路径';
             return;
@@ -154,17 +140,29 @@
 
     async function init() {
         try {
-            const response = await fetch('data/_station.json');
-            if (!response.ok) throw new Error(`station data ${response.status}`);
-            stationData = await response.json();
-            const stations = Object.keys(stationData).sort((a, b) => a.localeCompare(b, 'zh-CN'));
-            refs.stations.innerHTML = stations.map((station) => `<option value="${station}"></option>`).join('');
+            const [stationResponse, timetable] = await Promise.all([fetch('data/_station.json'), loadTimetableData()]);
+            if (!stationResponse.ok) throw new Error(`station data ${stationResponse.status}`);
+            stationData = await stationResponse.json();
+            const index = window.TransitData.buildLineIndex(stationData, timetable);
+            startPicker = window.TransitData.createStationPicker(index, stationData, {
+                input: refs.start,
+                menu: refs.startMenu,
+                lineSelect: refs.startLine,
+                lineSummary: refs.startLineSummary
+            });
+            endPicker = window.TransitData.createStationPicker(index, stationData, {
+                input: refs.end,
+                menu: refs.endMenu,
+                lineSelect: refs.endLine,
+                lineSummary: refs.endLineSummary
+            });
             refs.calc.addEventListener('click', calculate);
             refs.swap.addEventListener('click', () => {
                 const start = refs.start.value;
                 refs.start.value = refs.end.value;
                 refs.end.value = start;
-                calculate();
+                delete refs.start.dataset.station;
+                delete refs.end.dataset.station;
             });
             refs.passenger.addEventListener('change', calculate);
             refs.period.addEventListener('change', calculate);

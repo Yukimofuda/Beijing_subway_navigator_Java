@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lineButtonsDiv.innerHTML = '';
         lineButtonsDiv.className = 'line-choice-grid';
 
-        const sortedLines = Array.from(lineGroups.keys()).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+        const sortedLines = Array.from(lineGroups.keys()).sort((a, b) => window.TransitData ? window.TransitData.compareLines(a, b) : a.localeCompare(b, 'zh-CN'));
         for (const lineName of sortedLines) {
             const button = createButton(lineName, 'line-button line-choice-button');
             button.addEventListener('click', () => renderDirectionButtons(lineName, lineGroups.get(lineName), timetable));
@@ -55,7 +55,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const directions = lineData ? Object.keys(lineData) : Array.from(variants);
 
         directions.forEach((direction) => {
-            const button = createButton(direction, 'line-button line-choice-button');
+            const trains = lineData?.[direction] || {};
+            const firstTrain = trains[Object.keys(trains)[0]];
+            const firstStation = Array.isArray(firstTrain) ? firstTrain[0]?.[0] : '';
+            const lastStation = Array.isArray(firstTrain) ? firstTrain[firstTrain.length - 1]?.[0] : '';
+            const isRing = lineName === '2号线' || lineName === '10号线';
+            const directionLabel = firstStation && lastStation
+                ? `${isRing ? (/内|顺/.test(direction) ? '顺时针' : '逆时针') : ''}${firstStation}到${lastStation}`
+                : direction;
+            const button = createButton(directionLabel, 'line-button line-choice-button');
             button.addEventListener('click', () => {
                 localStorage.setItem('currentLine', lineName);
                 localStorage.setItem('currentLineDirection', direction);

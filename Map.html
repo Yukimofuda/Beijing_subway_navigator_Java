@@ -177,13 +177,20 @@
         <main class="map-shell">
             <aside class="map-side">
                 <section class="map-side-card">
-                    <div class="field combo-field">
-                        <div class="label">站点查询</div>
-                        <div class="combo-shell">
-                            <input class="input" id="map-station-search" list="map-station-list" placeholder="输入中文站名查看下一班车" autocomplete="off">
+                    <section class="journey-card station-picker" style="grid-template-columns:1fr;">
+                        <div class="field line-field">
+                            <div class="label">线路</div>
+                            <select class="input" id="map-station-line"></select>
+                            <input class="input line-summary" id="map-station-line-summary" type="text" readonly hidden>
                         </div>
-                        <datalist id="map-station-list"></datalist>
-                    </div>
+                        <div class="field combo-field">
+                            <div class="label">站点查询</div>
+                            <div class="combo-shell">
+                                <input class="input" id="map-station-search" placeholder="输入中文站名查看下一班车" autocomplete="off">
+                                <div class="combo-menu" id="map-station-menu"></div>
+                            </div>
+                        </div>
+                    </section>
                     <div id="map-station-panel" class="route-path-card muted" style="margin-top:12px;">数据加载中</div>
                 </section>
 
@@ -222,6 +229,7 @@
 
     <script defer src="src/ui.js"></script>
     <script defer src="src/timetableLoader.js"></script>
+    <script defer src="src/transitData.js"></script>
     <script defer src="src/mapExplorer.js"></script>
 </body>
 </html>
