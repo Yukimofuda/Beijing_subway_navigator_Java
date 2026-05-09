@@ -29,6 +29,7 @@ function createElement(tag = 'div') {
     textContent: '',
     innerHTML: '',
     value: '',
+    dataset: {},
     disabled: false,
     children: [],
     appendChild(child) {
@@ -36,6 +37,9 @@ function createElement(tag = 'div') {
       this.innerHTML += child.textContent || '';
     },
     addEventListener() {},
+    contains(target) {
+      return target === this || this.children.includes(target);
+    },
     setAttribute() {},
   };
   Object.defineProperty(element, 'options', {
@@ -142,10 +146,12 @@ async function testQueryPage(timetable, stationData) {
     'result',
     'start-station',
     'end-station',
+    'start-station-menu',
+    'end-station-menu',
     'start-line-select',
-    'start-station-select',
     'end-line-select',
-    'end-station-select',
+    'start-line-summary',
+    'end-line-summary',
   ]);
   document.getElementById('start-station').value = '西直门';
   document.getElementById('end-station').value = '积水潭';
@@ -183,9 +189,9 @@ async function testQueryPage(timetable, stationData) {
   if (button.disabled) {
     throw new Error('query button still disabled after data load');
   }
-  const startStationSelect = document.getElementById('start-station-select').innerHTML;
-  if (!startStationSelect.includes('西直门')) {
-    throw new Error('query station picker did not render station options');
+  const startMenu = document.getElementById('start-station-menu').innerHTML;
+  if (!startMenu.includes('西直门')) {
+    throw new Error('query station picker did not prepare integrated station options');
   }
   context.getRoute();
   const resultHtml = document.getElementById('result').innerHTML;
@@ -216,11 +222,15 @@ function checkMapViewerHtml() {
   if (!html.includes('id="subwayMap"')) {
     throw new Error('Map viewer missing subwayMap element');
   }
-  if (!html.includes('<img id="subwayMap"')) {
-    throw new Error('Map viewer is not using img-based renderer');
+  if (!html.includes('src/mapExplorer.js')) {
+    throw new Error('Map viewer is not using interactive map explorer script');
   }
   if (!html.includes('id="mapViewport"')) {
     throw new Error('Map viewer missing viewport container');
+  }
+  const mapScript = fs.readFileSync(path.join(ROOT, 'src', 'mapExplorer.js'), 'utf8');
+  if (!mapScript.includes('nextArrivals') || !mapScript.includes('station-hit')) {
+    throw new Error('Map explorer missing station hover arrival logic');
   }
 }
 
