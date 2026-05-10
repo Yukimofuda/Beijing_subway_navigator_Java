@@ -6,7 +6,9 @@
     const stationCountEl = document.getElementById('hoverStationCount');
     const tooltip = document.getElementById('map-tooltip');
     const stationSearch = document.getElementById('map-station-search');
-    const stationList = document.getElementById('map-station-list');
+    const stationMenu = document.getElementById('map-station-menu');
+    const stationLine = document.getElementById('map-station-line');
+    const stationLineSummary = document.getElementById('map-station-line-summary');
     const stationPanel = document.getElementById('map-station-panel');
 
     let stationAliases = {
@@ -124,6 +126,7 @@
     let lastPointerX = 0;
     let lastPointerY = 0;
     let frameRequested = false;
+    let stationPicker = null;
     const arrivalCache = new Map();
 
     function clamp(value, min, max) {
@@ -382,8 +385,14 @@
         svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         wireStationHover(svg);
 
-        const stationNames = Object.keys(stationData).sort((first, second) => first.localeCompare(second, 'zh-CN'));
-        stationList.innerHTML = stationNames.map((stationName) => `<option value="${stationName}"></option>`).join('');
+        const index = window.TransitData.buildLineIndex(stationData, timetableData);
+        stationPicker = window.TransitData.createStationPicker(index, stationData, {
+            input: stationSearch,
+            menu: stationMenu,
+            lineSelect: stationLine,
+            lineSummary: stationLineSummary
+        });
+        const stationNames = index.lines[0]?.stations.length ? index.lines[0].stations : index.stations;
         renderStationPanel(stationNames[0]);
     }
 
@@ -437,7 +446,8 @@
         if (event.key === '0') resetView();
     });
 
-    stationSearch.addEventListener('change', () => renderStationPanel(stationSearch.value.trim()));
+    stationSearch.addEventListener('change', () => renderStationPanel(stationPicker?.resolve() || stationSearch.value.trim()));
+    stationSearch.addEventListener('stationchange', (event) => renderStationPanel(event.detail.station));
     stationSearch.addEventListener('input', () => {
         const value = stationSearch.value.trim();
         if (stationData?.[value]) renderStationPanel(value);
