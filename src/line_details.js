@@ -26,6 +26,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return Array.isArray(firstTrain) ? firstTrain.map((item) => item[0]) : [];
     }
 
+    function displayDirectionLabel(stations) {
+        if (!stations.length) return currentDirection || '线路方向';
+        const first = stations[0];
+        const last = stations[stations.length - 1];
+        const isRing = currentLine === '2号线' || currentLine === '10号线';
+        if (isRing) {
+            const ringLabel = /内|顺/.test(currentDirection || '') ? '顺时针' : '逆时针';
+            return `${ringLabel}${first}到${last}`;
+        }
+        return `${first}到${last}`;
+    }
+
     function getEdgeInfo(stationData, fromStation, toStation, targetLine) {
         const edges = stationData[fromStation]?.edge || [];
         return edges.find((edge) => edge.station === toStation && matchesLine(edge.line, targetLine));
@@ -64,9 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const lineInfoDiv = document.createElement('div');
             lineInfoDiv.className = 'route-path-card';
             lineInfoDiv.innerHTML = `
-                <div class="pill">${currentDirection || '线路方向'}</div>
+                <div class="pill">${displayDirectionLabel(orderedStations)}</div>
                 <h2 style="margin:10px 0 0;">${currentLine}</h2>
                 <p class="subtitle">${orderedStations.length}个站点 · 最高速度 ${maxSpeed} km/h</p>
+                <div class="grid">
+                    <a class="btn btn-primary" href="query.html">规划该线路行程</a>
+                    <a class="btn btn-ghost" href="lines.html">查看列车时刻表</a>
+                    <a class="btn btn-ghost" href="station_guide.html">打开站点导览</a>
+                </div>
             `;
             lineStationDetailsDiv.appendChild(lineInfoDiv);
 
