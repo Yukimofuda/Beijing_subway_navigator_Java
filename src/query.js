@@ -28,6 +28,9 @@ function canonicalLineName(lineName) {
 }
 
 function buildStationPickerIndex(stations) {
+    if (window.TransitData && timetableData) {
+        return window.TransitData.buildLineIndex(stations, timetableData);
+    }
     const lines = new Map();
     for (const stationName of Object.keys(stations || {})) {
         const info = stations[stationName];
@@ -72,6 +75,11 @@ function setupStationPickers() {
             lineSummary: document.getElementById('end-line-summary'),
         },
     ];
+    if (window.TransitData) {
+        const pickers = configs.map((config) => window.TransitData.createStationPicker(stationPickerIndex, stationData, config));
+        window.__queryPickers = { start: pickers[0], end: pickers[1] };
+        return;
+    }
 
     function fillLineSelect(config) {
         const selected = config.lineSelect.value;
@@ -79,9 +87,7 @@ function setupStationPickers() {
             '<option value="">全部线路</option>',
             ...stationPickerIndex.lines.map((line) => `<option value="${line.label}">${line.label}</option>`),
         ].join('');
-        if (selected && stationPickerIndex.lines.some((line) => line.label === selected)) {
-            config.lineSelect.value = selected;
-        }
+        if (selected && stationPickerIndex.lines.some((line) => line.label === selected)) config.lineSelect.value = selected;
     }
 
     function setLinePickerMode(config, mode, text) {
@@ -253,6 +259,11 @@ function setupStationPickers() {
 }
 
 function resolvePickerStation(inputId) {
+    if (window.__queryPickers) {
+        const picker = inputId.includes('start') ? window.__queryPickers.start : window.__queryPickers.end;
+        const stationName = picker?.resolve();
+        if (stationName) return stationName;
+    }
     const input = document.getElementById(inputId);
     const inputValue = input.value.trim();
     if (input.dataset.station && stationData[input.dataset.station]) return input.dataset.station;
@@ -966,6 +977,58 @@ while (current !== null) {
 return path; // 返回重建的路径（站点数组）
 }
 
+function lineColor(lineName) {
+    return window.TransitData ? window.TransitData.lineColor(lineName) : '#3c4043';
+}
+
+function simpleLineName(lineName) {
+    return window.TransitData ? window.TransitData.simplifyLineName(lineName) : simplifyLineName(lineName);
+}
+
+function buildRouteLineDiagram(segments) {
+    if (!segments || !segments.length) return '';
+    const blocks = [];
+    let current = null;
+    for (const segment of segments) {
+        const line = simpleLineName(segment.line);
+        if (!current || current.line !== line) {
+            current = {
+                line,
+                from: segment.from,
+                to: segment.to,
+                departure: segment.departure,
+                arrival: segment.arrival,
+                stations: [segment.from, segment.to]
+            };
+            blocks.push(current);
+        } else {
+            current.to = segment.to;
+            current.arrival = segment.arrival;
+            current.stations.push(segment.to);
+        }
+    }
+
+    return `
+        <div class="route-line-visual">
+            ${blocks.map((block, index) => {
+                const transfer = index > 0 ? `<span class="transfer-note">换乘${block.line} · 换乘约5分钟</span>` : '';
+                const minutes = Math.max(0, block.arrival - block.departure);
+                return `
+                    <section class="route-line-block" style="--line-color:${lineColor(block.line)};">
+                        <div class="route-line-label"><strong>${block.line}</strong><span>${minutes}分钟</span>${transfer}</div>
+                        <div class="route-line-track"></div>
+                        <div class="route-station-strip">
+                            ${block.stations.map((stationName, stationIndex) => `
+                                <span class="route-station${stationIndex === 0 || stationIndex === block.stations.length - 1 ? ' is-terminal' : ''}">${stationName}</span>
+                            `).join('')}
+                        </div>
+                    </section>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
 // 查询地铁路线的函数
 function getRoute() {
 const startStation = resolvePickerStation('start-station'); // 获取用户输入或选择的起始站
@@ -1038,7 +1101,8 @@ resultDiv.innerHTML = `
         <div class="route-summary-card"><span class="combo-kind">总时间</span><strong>${endTime - currentTimeInMinutes} 分钟</strong></div>
         <div class="route-summary-card"><span class="combo-kind">费用 / 换乘</span><strong>${fare} 元 · ${transferCount < 0 ? 0 : transferCount} 次</strong></div>
     </div>
-    <div class="route-path-card"><strong>路径</strong><p class="subtitle">${path.join(' → ')}</p></div>
+    <div class="route-path-card"><strong>线路与站点</strong>${buildRouteLineDiagram(segments)}</div>
+    <div class="route-path-card"><strong>完整路径</strong><p class="subtitle">${path.join(' → ')}</p></div>
     ${stationTimesHTML}
 `;
 }
