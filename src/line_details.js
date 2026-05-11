@@ -40,7 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getEdgeInfo(stationData, fromStation, toStation, targetLine) {
         const edges = stationData[fromStation]?.edge || [];
-        return edges.find((edge) => edge.station === toStation && matchesLine(edge.line, targetLine));
+        return edges.find((edge) => edge.station === toStation && matchesLine(edge.line, targetLine))
+            || (stationData[toStation]?.edge || []).find((edge) => edge.station === fromStation && matchesLine(edge.line, targetLine));
     }
 
     if (!currentLine) {
@@ -90,8 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const table = document.createElement('table');
             let html = `
                 <tr>
-                    <th>本站名称</th>
-                    <th>下一站名称</th>
+                    <th>上一站</th>
+                    <th>本站</th>
+                    <th>下一站</th>
                     <th>距离 (米)</th>
                     <th>所需时间 (秒)</th>
                 </tr>
@@ -99,12 +101,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for (let i = 0; i < orderedStations.length; i++) {
                 const currentStationName = orderedStations[i];
+                const previousStationName = i > 0 ? orderedStations[i - 1] : null;
                 const nextStationName = i < orderedStations.length - 1 ? orderedStations[i + 1] : null;
                 const edge = nextStationName ? getEdgeInfo(stationData, currentStationName, nextStationName, currentLine) : null;
                 html += `
                     <tr>
+                        <td>${previousStationName || '始发端'}</td>
                         <td>${currentStationName}</td>
-                        <td>${nextStationName || '-'}</td>
+                        <td>${nextStationName || '终点端'}</td>
                         <td>${edge?.distance || '-'}</td>
                         <td>${edge?.time ? edge.time.toFixed(2) : '-'}</td>
                     </tr>
