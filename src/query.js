@@ -78,6 +78,7 @@ function setupStationPickers() {
     if (window.TransitData) {
         const pickers = configs.map((config) => window.TransitData.createStationPicker(stationPickerIndex, stationData, config));
         window.__queryPickers = { start: pickers[0], end: pickers[1] };
+        applyRouteParams();
         return;
     }
 
@@ -256,6 +257,22 @@ function setupStationPickers() {
             config.menu.classList.remove('is-open');
         }
     });
+}
+
+function applyRouteParams() {
+    const params = new URLSearchParams(window.location.search);
+    const start = params.get('start') || params.get('station');
+    const end = params.get('end');
+    if (start && stationData[start]) window.__queryPickers?.start?.setStation(start);
+    if (end && stationData[end]) window.__queryPickers?.end?.setStation(end);
+}
+
+function swapRouteEndpoints() {
+    const start = resolvePickerStation('start-station');
+    const end = resolvePickerStation('end-station');
+    if (end) window.__queryPickers?.start?.setStation(end);
+    if (start) window.__queryPickers?.end?.setStation(start);
+    if (start && end && isDataReady) getRoute();
 }
 
 function resolvePickerStation(inputId) {
