@@ -90,10 +90,12 @@
         head.className = 'detail-head';
         const left = document.createElement('div');
         left.appendChild(node('h1', stationName, 'title'));
-        left.appendChild(node('p', `${(info.lines || []).length}条线路 · ${(info.edge || []).length}个相邻站`, 'subtitle'));
+        const adjacency = window.TransitData.lineSegmentsForStation(state.index, stationName);
+        const adjacentStationCount = new Set(adjacency.flatMap((item) => [item.previous, item.next]).filter(Boolean)).size;
+        left.appendChild(node('p', `${(info.lines || []).length}条线路 · ${adjacentStationCount}个相邻站`, 'subtitle'));
         const routeLink = document.createElement('a');
         routeLink.className = 'btn btn-primary';
-        routeLink.href = `query.html?station=${encodeURIComponent(stationName)}`;
+        routeLink.href = `query.html?start=${encodeURIComponent(stationName)}`;
         routeLink.textContent = '规划路线';
         head.appendChild(left);
         head.appendChild(routeLink);
@@ -118,7 +120,7 @@
             [firstLast.last ? firstLast.last.time : '-', '最晚到发'],
             [String(firstLast.count), '匹配班次'],
             [`${Math.max(1, (info.lines || []).length + 1)}处`, '出入口估算'],
-            [(info.edge || []).slice(0, 3).map((edge) => edge.station).join(' / ') || '-', '周边相邻站'],
+            [Array.from(new Set(adjacency.flatMap((item) => [item.previous, item.next]).filter(Boolean))).slice(0, 4).join(' / ') || '-', '相邻站'],
             ['商业、学校、公园等以实际站外信息为准', '周边提示']
         ].forEach(([value, label]) => {
             const tile = document.createElement('div');
@@ -129,22 +131,54 @@
         });
         refs.detail.appendChild(grid);
 
-        const neighbors = document.createElement('div');
-        neighbors.className = 'neighbor-list';
-        (info.edge || []).forEach((edge) => {
-            const link = document.createElement('button');
-            link.type = 'button';
-            link.className = 'chip';
-            link.textContent = `${edge.station} · ${(Number(edge.distance) / 1000).toFixed(1)}km`;
-            link.addEventListener('click', () => {
-                state.selected = edge.station;
-                state.picker.setStation(edge.station);
-                renderList();
-                renderDetail();
+        const actions = document.createElement('div');
+        actions.className = 'station-actions';
+        [
+            ['设为起点', `query.html?start=${encodeURIComponent(stationName)}`],
+            ['设为终点', `query.html?end=${encodeURIComponent(stationName)}`],
+            ['测算票价', `fare_calculator.html?start=${encodeURIComponent(stationName)}`],
+            ['查看线路图', `Map.html?station=${encodeURIComponent(stationName)}`]
+        ].forEach(([label, href]) => {
+            const link = document.createElement('a');
+            link.className = label === '设为起点' ? 'btn btn-primary' : 'btn btn-ghost';
+            link.href = href;
+            link.textContent = label;
+            adjacencyWrap.appendChild(card);
+        });
+        refs.detail.appendChild(actions);
+
+        const adjacencyWrap = document.createElement('div');
+        adjacencyWrap.className = 'adjacency-grid';
+        adjacency.forEach((item) => {
+            const card = document.createElement('div');
+            card.className = 'adjacency-card';
+            card.style.setProperty('--line-color', item.color);
+            card.innerHTML = `
+                <div class="adjacency-card-title">
+                    <span>${item.line}</span>
+                    <span class="muted">第 ${item.index} / ${item.total} 站</span>
+                </div>
+                <div class="adjacency-flow">
+                    <button class="chip" type="button" data-station="${item.previous || ''}" ${item.previous ? '' : 'disabled'}>${item.previous || '始发端'}</button>
+                    <span>→</span>
+                    <strong>${item.current}</strong>
+                    <span>→</span>
+                    <button class="chip" type="button" data-station="${item.next || ''}" ${item.next ? '' : 'disabled'}>${item.next || '终点端'}</button>
+                </div>
+            `;
+            card.querySelectorAll('[data-station]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const nextStation = button.dataset.station;
+                    if (!nextStation) return;
+                    state.selected = nextStation;
+                    state.picker.setStation(nextStation);
+                    renderList();
+                    renderDetail();
+                });
             });
             neighbors.appendChild(link);
         });
-        refs.detail.appendChild(neighbors);
+        refs.detail.appendChild(adjacencyWrap);
     }
 
     async function init() {
