@@ -394,6 +394,8 @@ body::before {
 .route-line-block {
   display: grid;
   gap: 8px;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .route-line-label {
@@ -420,16 +422,18 @@ body::before {
 
 .route-line-track {
   height: 0.5em;
+  width: 100%;
   border-radius: 999px;
   background: var(--line-color);
   box-shadow: 0 7px 18px color-mix(in srgb, var(--line-color) 35%, transparent);
 }
 
 .route-station-strip {
-  display: flex;
+  display: inline-flex;
   gap: 10px;
   overflow-x: auto;
   padding-bottom: 4px;
+  max-width: 100%;
 }
 
 .route-station {
@@ -441,6 +445,47 @@ body::before {
 .route-station.is-terminal {
   color: var(--text);
   font-weight: 800;
+}
+
+.adjacency-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.adjacency-card {
+  border: 1px solid var(--line);
+  border-left: 8px solid var(--line-color);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 12px;
+}
+
+.adjacency-card-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 850;
+}
+
+.adjacency-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.adjacency-flow strong {
+  color: var(--text);
+}
+
+.station-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .line-choice-grid {
