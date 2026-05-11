@@ -2,6 +2,7 @@
     const LINE_COLORS = {
         '1号线': '#A4343A',
         '八通线': '#A4343A',
+        '1号线八通线': '#A4343A',
         '2号线': '#006098',
         '4号线大兴线': '#008C95',
         '4号线': '#008C95',
@@ -58,6 +59,24 @@
 
     function lineColor(lineName) {
         return LINE_COLORS[simplifyLineName(lineName)] || '#3c4043';
+    }
+
+    function lineSegmentsForStation(index, stationName) {
+        const segments = [];
+        for (const line of index.lines || []) {
+            const stationIndex = line.stations.indexOf(stationName);
+            if (stationIndex === -1) continue;
+            segments.push({
+                line: line.label,
+                color: line.color,
+                previous: stationIndex > 0 ? line.stations[stationIndex - 1] : null,
+                current: stationName,
+                next: stationIndex < line.stations.length - 1 ? line.stations[stationIndex + 1] : null,
+                index: stationIndex + 1,
+                total: line.stations.length
+            });
+        }
+        return segments.sort((a, b) => compareLines(a.line, b.line));
     }
 
     function getDayData(timetable) {
@@ -225,6 +244,7 @@
         lineColor,
         buildLineIndex,
         stationLines,
+        lineSegmentsForStation,
         createStationPicker,
         getDayData
     };

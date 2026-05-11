@@ -156,6 +156,11 @@
                 lineSelect: refs.endLine,
                 lineSummary: refs.endLineSummary
             });
+            const params = new URLSearchParams(window.location.search);
+            const start = params.get('start');
+            const end = params.get('end');
+            if (start && stationData[start]) startPicker.setStation(start);
+            if (end && stationData[end]) endPicker.setStation(end);
             refs.calc.addEventListener('click', calculate);
             refs.swap.addEventListener('click', () => {
                 const start = refs.start.value;

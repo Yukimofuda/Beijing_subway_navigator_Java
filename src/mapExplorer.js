@@ -393,7 +393,14 @@
             lineSummary: stationLineSummary
         });
         const stationNames = index.lines[0]?.stations.length ? index.lines[0].stations : index.stations;
-        renderStationPanel(stationNames[0]);
+        const params = new URLSearchParams(window.location.search);
+        const requestedStation = params.get('station');
+        if (requestedStation && stationData[requestedStation]) {
+            stationPicker.setStation(requestedStation);
+            renderStationPanel(requestedStation);
+        } else {
+            renderStationPanel(stationNames[0]);
+        }
     }
 
     document.getElementById('zoomInBtn').addEventListener('click', () => zoomAt(1.15, viewport.clientWidth / 2, viewport.clientHeight / 2));
