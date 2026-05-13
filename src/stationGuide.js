@@ -6,15 +6,18 @@
         lineSummary: document.getElementById('station-guide-line-summary'),
         list: document.getElementById('station-guide-list'),
         detail: document.getElementById('station-guide-detail'),
+        recent: document.getElementById('station-guide-recent'),
     };
 
     const state = {
         stations: null,
         timetable: null,
+        details: {},
         index: null,
         picker: null,
         selected: null,
     };
+    const RECENT_KEY = 'subwayRecentStations';
 
     function clearNode(node) {
         while (node.firstChild) node.removeChild(node.firstChild);
@@ -50,6 +53,61 @@
         return state.index.stations;
     }
 
+    function readRecentStations() {
+        try {
+            return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]').filter((stationName) => state.stations?.[stationName]).slice(0, 8);
+        } catch (_) {
+            return [];
+        }
+    }
+
+    function saveRecentStation(stationName) {
+        if (!stationName) return;
+        const recent = [stationName, ...readRecentStations().filter((name) => name !== stationName)].slice(0, 8);
+        try {
+            localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+        } catch (_) {
+            return;
+        }
+        renderRecentStations();
+    }
+
+    function renderRecentStations() {
+        if (!refs.recent) return;
+        clearNode(refs.recent);
+        const recent = readRecentStations();
+        if (!recent.length) {
+            refs.recent.appendChild(node('span', '暂无记录', 'muted'));
+            return;
+        }
+        recent.forEach((stationName) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chip';
+            button.textContent = stationName;
+            button.addEventListener('click', () => selectStation(stationName));
+            refs.recent.appendChild(button);
+        });
+    }
+
+    function selectStation(stationName) {
+        if (!state.stations?.[stationName]) return;
+        state.selected = stationName;
+        state.picker.setStation(stationName);
+        renderList();
+        renderDetail();
+    }
+
+    function createLink(label, href, className = 'btn btn-ghost') {
+        const link = document.createElement('a');
+        link.className = className;
+        link.href = href;
+        link.target = href.startsWith('http') ? '_blank' : '_self';
+        link.rel = href.startsWith('http') ? 'noopener' : '';
+        link.textContent = label;
+        return link;
+    }
+
     function renderList() {
         const stations = currentStationList();
         clearNode(refs.list);
@@ -65,14 +123,90 @@
             row.className = `station-row${stationName === state.selected ? ' is-selected' : ''}`;
             row.appendChild(node('div', stationName, 'line-row-name'));
             row.appendChild(node('div', (info.lines || []).map(window.TransitData.simplifyLineName).sort(window.TransitData.compareLines).join(' / '), 'line-row-meta'));
-            row.addEventListener('click', () => {
-                state.selected = stationName;
-                state.picker.setStation(stationName);
-                renderList();
-                renderDetail();
-            });
+            row.addEventListener('click', () => selectStation(stationName));
             refs.list.appendChild(row);
         }
+    }
+
+    function renderRealStationInfo(stationName, adjacency) {
+        const detail = state.details?.[stationName];
+        const section = document.createElement('section');
+        section.className = 'station-source-panel';
+
+        const header = document.createElement('div');
+        header.className = 'source-panel-head';
+        const titleWrap = document.createElement('div');
+        titleWrap.appendChild(node('h2', '站内导览与周边', 'section-title'));
+        titleWrap.appendChild(node('p', detail ? '以下内容来自已核验公开页面，未确定信息保留来源入口。' : '本地尚未收录该站的核验详情，可直接打开官方站点及周边信息继续查询。', 'muted'));
+        header.appendChild(titleWrap);
+        header.appendChild(createLink('打开官方查询', detail?.officialLookupUrl || 'https://www.bjsubway.com/station/xltcx/'));
+        section.appendChild(header);
+
+        if (detail?.guideMapUrl) {
+            const mapLink = document.createElement('a');
+            mapLink.className = 'guide-map-card';
+            mapLink.href = detail.guideMapUrl;
+            mapLink.target = '_blank';
+            mapLink.rel = 'noopener';
+            const image = document.createElement('img');
+            image.src = detail.guideMapUrl;
+            image.alt = `${stationName}站内导览图`;
+            image.loading = 'lazy';
+            mapLink.appendChild(image);
+            mapLink.appendChild(node('span', '查看官方站内导览图', 'metric-label'));
+            section.appendChild(mapLink);
+        }
+
+        const facts = document.createElement('div');
+        facts.className = 'station-fact-grid';
+        [
+            [detail?.knownExits?.length ? detail.knownExits.join(' / ') : '以官方页面为准', detail?.knownExits?.length ? '已核验出入口' : '出入口信息'],
+            [detail?.exitCountText || '未写入未核验出口数', '出口数说明'],
+            [detail?.nearby?.join(' / ') || '待补充', '周边地点'],
+            [detail?.services?.join(' / ') || '待补充', '站内服务']
+        ].forEach(([value, label]) => {
+            const tile = document.createElement('div');
+            tile.className = 'station-tile';
+            tile.appendChild(node('div', value, 'metric-value compact'));
+            tile.appendChild(node('div', label, 'metric-label'));
+            facts.appendChild(tile);
+        });
+        section.appendChild(facts);
+
+        if (detail?.tips) {
+            const tips = document.createElement('div');
+            tips.className = 'station-note';
+            tips.textContent = detail.tips;
+            section.appendChild(tips);
+        }
+
+        const sourceLinks = document.createElement('div');
+        sourceLinks.className = 'source-links';
+        if (detail?.sourceUrl) sourceLinks.appendChild(createLink(detail.sourceName || '来源页面', detail.sourceUrl, 'chip'));
+        sourceLinks.appendChild(createLink('站点及周边信息总入口', 'https://www.bjsubway.com/station/xltcx/', 'chip'));
+        sourceLinks.appendChild(createLink('在地图中查看', `Map.html?station=${encodeURIComponent(stationName)}`, 'chip'));
+        sourceLinks.appendChild(createLink('作为起点规划', `query.html?start=${encodeURIComponent(stationName)}`, 'chip'));
+        section.appendChild(sourceLinks);
+
+        if (adjacency.length) {
+            const nearbyActions = document.createElement('div');
+            nearbyActions.className = 'source-links';
+            adjacency.slice(0, 4).forEach((item) => {
+                [item.previous, item.next].filter(Boolean).forEach((nearbyStation) => {
+                    if (nearbyActions.querySelector(`[data-nearby="${nearbyStation}"]`)) return;
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'chip';
+                    button.dataset.nearby = nearbyStation;
+                    button.textContent = `相邻站：${nearbyStation}`;
+                    button.addEventListener('click', () => selectStation(nearbyStation));
+                    nearbyActions.appendChild(button);
+                });
+            });
+            if (nearbyActions.childElementCount) section.appendChild(nearbyActions);
+        }
+
+        refs.detail.appendChild(section);
     }
 
     function renderDetail() {
@@ -85,6 +219,7 @@
             refs.detail.appendChild(node('div', '暂无站点数据', 'muted'));
             return;
         }
+        saveRecentStation(stationName);
 
         const head = document.createElement('div');
         head.className = 'detail-head';
@@ -146,6 +281,7 @@
             actions.appendChild(link);
         });
         refs.detail.appendChild(actions);
+        renderRealStationInfo(stationName, adjacency);
 
         const adjacencyWrap = document.createElement('div');
         adjacencyWrap.className = 'adjacency-grid';
@@ -170,10 +306,7 @@
                 button.addEventListener('click', () => {
                     const nextStation = button.dataset.station;
                     if (!nextStation) return;
-                    state.selected = nextStation;
-                    state.picker.setStation(nextStation);
-                    renderList();
-                    renderDetail();
+                    selectStation(nextStation);
                 });
             });
             adjacencyWrap.appendChild(card);
@@ -183,10 +316,15 @@
 
     async function init() {
         try {
-            const [stationResponse, timetable] = await Promise.all([fetch('data/_station.json'), loadTimetableData()]);
+            const [stationResponse, timetable, detailsResponse] = await Promise.all([
+                fetch('data/_station.json'),
+                loadTimetableData(),
+                fetch('data/station_details.json').catch(() => null)
+            ]);
             if (!stationResponse.ok) throw new Error(`station data ${stationResponse.status}`);
             state.stations = await stationResponse.json();
             state.timetable = timetable;
+            state.details = detailsResponse?.ok ? await detailsResponse.json() : {};
             state.index = window.TransitData.buildLineIndex(state.stations, timetable);
             state.picker = window.TransitData.createStationPicker(state.index, state.stations, {
                 input: refs.search,
@@ -194,7 +332,10 @@
                 lineSelect: refs.line,
                 lineSummary: refs.lineSummary
             });
-            state.selected = state.index.lines[0]?.stations[0] || state.index.stations[0];
+            const requestedStation = new URLSearchParams(window.location.search).get('station');
+            state.selected = requestedStation && state.stations[requestedStation]
+                ? requestedStation
+                : state.index.lines[0]?.stations[0] || state.index.stations[0];
             if (state.selected) state.picker.setStation(state.selected);
             refs.line.addEventListener('change', () => {
                 state.selected = currentStationList()[0];
@@ -216,6 +357,7 @@
                 renderDetail();
             });
             renderList();
+            renderRecentStations();
             renderDetail();
         } catch (error) {
             console.error(error);

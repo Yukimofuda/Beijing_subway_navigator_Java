@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += `
                     <tr>
                         <td>${previousStationName || '始发端'}</td>
-                        <td>${currentStationName}</td>
+                        <td><a class="chip" href="station_guide.html?station=${encodeURIComponent(currentStationName)}">${currentStationName}</a></td>
                         <td>${nextStationName || '终点端'}</td>
                         <td>${edge?.distance || '-'}</td>
                         <td>${edge?.time ? edge.time.toFixed(2) : '-'}</td>

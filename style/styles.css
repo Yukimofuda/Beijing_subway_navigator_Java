@@ -697,7 +697,7 @@ tr:last-child td {
 .tile-visual {
   position: absolute;
   inset: 0;
-  background-image: var(--tile-image);
+  background-image: var(--tile-image, var(--tile-fallback));
   background-size: cover;
   background-position: center;
   opacity: 0.22;
