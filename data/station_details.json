@@ -1,0 +1,108 @@
+{
+  "_meta": {
+    "policy": "只收录能从公开网页核验的站点导览信息；未覆盖站点在页面中显示官方查询入口，不自动生成不确定的出口数。",
+    "sources": [
+      "https://www.bjsubway.com/station/xltcx/",
+      "https://archive.ph/2025.12.26-140354/https%3A/www.bjsubway.com/station/xltcx/",
+      "https://www.mtr.bj.cn/service/line/station/5d5a18eeb1ea0278b8fffd71.html"
+    ]
+  },
+  "北京南站": {
+    "sourceName": "北京京港地铁官方站点页",
+    "sourceUrl": "https://www.mtr.bj.cn/service/line/station/5d5a18eeb1ea0278b8fffd71.html",
+    "guideMapUrl": "https://www.mtr.bj.cn/__local/9/02/8A/896B781868065917A216B1BDACB_17C20BA5_64075.jpg",
+    "knownExits": ["B1", "B2", "D"],
+    "exitCountText": "官方服务设施信息可核验 B1、B2、D 等出入口位置；铁路站厅与广场出口以现场导向为准。",
+    "services": ["卫生间", "无障碍卫生间", "直升电梯", "自动售票机", "乘客服务中心", "AED", "寄存柜"],
+    "nearby": ["北京南站铁路枢纽", "北京南站公交枢纽", "开阳里片区"],
+    "tips": "高铁、地铁、公交换乘客流大，建议预留安检与换乘时间。"
+  },
+  "望京南": {
+    "sourceName": "北京京港地铁官方站点页",
+    "sourceUrl": "https://www.mtr.bj.cn/service/line/station/5d5a13a4b1ea0278b8fffd18.html",
+    "guideMapUrl": "https://www.mtr.bj.cn/__local/7/95/14/6D2F1578F95FC3B1E9F74D24A49_5F7A9EB0_4DB95.jpg",
+    "knownExits": ["A", "B", "C"],
+    "exitCountText": "官方服务设施信息出现 A、B、C 三个出入口。",
+    "services": ["卫生间", "无障碍卫生间", "C口直梯", "自动售票机", "乘客服务中心", "AED"],
+    "nearby": ["望京商务区", "望京公园", "阜通片区"],
+    "tips": "14号线通勤客流明显，早晚高峰优先查看下一班车信息。"
+  },
+  "永丰南": {
+    "sourceName": "北京京港地铁官方站点页",
+    "sourceUrl": "https://www.mtr.bj.cn/service/line/station/5d5a1291b1ea0278b8fffcf7.html",
+    "knownExits": ["B", "C", "D"],
+    "exitCountText": "官方服务设施信息可核验 B、C、D 口及无障碍设施位置。",
+    "services": ["卫生间", "无障碍卫生间", "B口直梯", "D口直梯", "坡道", "自动售票机", "乘客服务中心", "AED"],
+    "nearby": ["永丰产业基地", "永丰路片区"],
+    "tips": "16号线北段站距较长，建议提前确认方向与末班车。"
+  },
+  "天安门东": {
+    "sourceName": "公开站点资料与北京地铁站点入口",
+    "sourceUrl": "https://everything.explained.today/Tiananmen_East_Station/",
+    "officialLookupUrl": "https://www.bjsubway.com/station/xltcx/",
+    "exitCountText": "核心区站点出口与临时管控变化较多，出口数以北京地铁官方页面和现场导向为准。",
+    "services": ["无障碍出行以现场导向为准", "核心区客流管控提示"],
+    "nearby": ["天安门广场", "中国国家博物馆", "故宫博物院", "东长安街"],
+    "tips": "重大活动或客流管控期间可能临时调整出入口开放状态。"
+  },
+  "王府井": {
+    "sourceName": "北京地铁站点及周边信息入口",
+    "sourceUrl": "https://www.bjsubway.com/station/xltcx/",
+    "exitCountText": "请以北京地铁官方站点页与现场导向为准。",
+    "services": ["商业区客流提示", "无障碍出行以现场导向为准"],
+    "nearby": ["王府井步行街", "东方新天地", "北京百货大楼", "王府井教堂"],
+    "tips": "节假日商业区客流集中，建议优先使用线路图查看周边替代站。"
+  },
+  "前门": {
+    "sourceName": "北京地铁站点及周边信息入口",
+    "sourceUrl": "https://www.bjsubway.com/station/xltcx/",
+    "exitCountText": "请以北京地铁官方站点页与现场导向为准。",
+    "services": ["旅游客流提示", "无障碍出行以现场导向为准"],
+    "nearby": ["前门大街", "正阳门", "大栅栏", "天安门广场南侧"],
+    "tips": "旅游高峰时段建议结合步行距离选择前门、和平门或珠市口等相邻站。"
+  },
+  "西直门": {
+    "sourceName": "北京地铁站点及周边信息入口",
+    "sourceUrl": "https://www.bjsubway.com/station/xltcx/",
+    "exitCountText": "大型换乘站出口多，出口数与通道开放情况以官方页面和现场导向为准。",
+    "services": ["2号线换乘", "4号线换乘", "13号线换乘", "铁路枢纽换乘提示"],
+    "nearby": ["北京北站", "凯德MALL", "西直门交通枢纽"],
+    "tips": "换乘路径较长，站内请按颜色导向与线路编号行走。"
+  },
+  "北京站": {
+    "sourceName": "北京地铁官方网站 2号线北京站页",
+    "sourceUrl": "https://bjsubway.com/station/xltcx/line2/2013-08-26/267.html",
+    "knownExits": ["A", "B", "C", "D"],
+    "exitCountText": "官方设施信息可核验 A、B、C、D 口相关服务点位。",
+    "services": ["卫生间", "自动售票机", "人工售票", "警务室", "母婴设施", "AED", "坡道"],
+    "nearby": ["北京站铁路枢纽", "北京站东街", "东单片区"],
+    "tips": "铁路换乘客流明显，建议把安检、取票和站内步行时间计入行程。"
+  },
+  "建国门": {
+    "sourceName": "北京地铁官方网站 2号线建国门页",
+    "sourceUrl": "https://www.bjsubway.com/station/xltcx/line2/2013-08-26/260.html",
+    "knownExits": ["A", "B", "C"],
+    "exitCountText": "官方设施信息可核验 A、B、C 口相关服务点位。",
+    "services": ["卫生间", "自动售票机", "人工售票", "警务室", "母婴设施", "AED", "升降平台", "坡道"],
+    "nearby": ["建国门桥", "北京站西街", "长安街沿线"],
+    "tips": "1号线与2号线换乘站，站厅动线较多，出站前确认 A/B/C 口方向。"
+  },
+  "北京西站": {
+    "sourceName": "北京地铁官方网站 7号线北京西站页",
+    "sourceUrl": "https://www.bjsubway.com/station/xltcx/lines7/2014-12-24/428.html?sk=1",
+    "knownExits": ["A", "B"],
+    "exitCountText": "官方设施信息可核验北厅 A 口、南厅 B 口相关服务点位。",
+    "services": ["自动售票机", "人工售票", "站内直梯", "AED", "坡道", "出入口直梯", "盲道"],
+    "nearby": ["北京西站铁路枢纽", "北广场", "南广场"],
+    "tips": "铁路、公交、地铁换乘层级多，建议优先查看站内导向并预留换乘时间。"
+  },
+  "工人体育场": {
+    "sourceName": "北京地铁官方网站 3号线工人体育场页",
+    "sourceUrl": "https://bjsubway.com/station/xltcx/line3/2024-12-11/610.html",
+    "knownExits": ["A", "B", "G", "H"],
+    "exitCountText": "官方设施信息可核验 A、B、G、H 口相关服务点位。",
+    "services": ["自动售票机", "人工售票", "卫生间", "母婴设施", "警务室", "站内直梯", "AED", "出入口直梯"],
+    "nearby": ["北京工人体育场", "三里屯片区", "朝阳医院周边"],
+    "tips": "大型活动散场时可能出现客流管控，建议提前查看运行看板和相邻站。"
+  }
+}
