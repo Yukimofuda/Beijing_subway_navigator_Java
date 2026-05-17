@@ -6,6 +6,7 @@ let subwayGraph = null; // 基于时刻表数据构地铁线路图，使用邻�
 let transferWeights = {}; // 换乘站点的权重，用于标记换乘站
 let isDataReady = false; // 标记时刻表和站点数据是否加载完成
 let stationPickerIndex = null;
+let timetableIndex = null;
 
 function setDataReadyState(ready) {
     isDataReady = ready;
@@ -358,6 +359,9 @@ Promise.all([
         console.log('Stations loaded:', Object.keys(stations)); // 在控制台输出加载的站点数量
         timetableData = normalizeTimetableData(timetable); // 调用normalizeTimetableData函数规范化时刻表数据
         subwayGraph = buildGraph(timetableData); // 调用buildGraph函数，使用加载的时刻表数据构建地铁线路图
+        timetableIndex = window.TimetableService
+            ? window.TimetableService.buildArrivalIndex(timetable, { dayType: '工作日' })
+            : null;
         console.log('Stations in graph:', Object.keys(subwayGraph.adjacencyList)); // 输出地铁图中包含的站点数量
         assignTransferWeights(subwayGraph.adjacencyList); // 调用assignTransferWeights函数，为地铁图中的换乘站分配权重
         setupStationPickers();
