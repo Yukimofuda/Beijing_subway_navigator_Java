@@ -16,6 +16,9 @@ function setDataReadyState(ready) {
 }
 
 function simplifyLineName(lineName) {
+    if (window.TransferPolicy?.simplifyLineName) {
+        return window.TransferPolicy.simplifyLineName(lineName);
+    }
     return String(lineName || '')
         .replace(/^地铁/, '')
         .replace(/\(.+\)$/, '')
@@ -24,7 +27,9 @@ function simplifyLineName(lineName) {
 }
 
 function canonicalLineName(lineName) {
-    return simplifyLineName(lineName);
+    return window.TransferPolicy?.normalizeLineName
+        ? window.TransferPolicy.normalizeLineName(lineName)
+        : simplifyLineName(lineName);
 }
 
 function buildStationPickerIndex(stations) {
@@ -576,6 +581,14 @@ function timeStringToMinutes(timeStr) {
 
 // Dijkstra最短时间算法
 function dijkstraShortestPath(startStation, endStation) {
+    if (window.RoutePlanner && subwayGraph) {
+        const route = window.RoutePlanner.findFastestRoute(subwayGraph, startStation, endStation, {
+            dwellMinutes: 1,
+            transferPenaltyMinutes: 5,
+        });
+        if (route) return route;
+    }
+
     // 检查地铁图是否已经初始化
     if (!subwayGraph) {
         console.error('Subway graph not initialized.');
@@ -681,6 +694,14 @@ function dijkstraShortestPath(startStation, endStation) {
 
 // Dijkstra最少换乘算法
 function dijkstraLeastTransfers(startStation, endStation) {
+    if (window.RoutePlanner && subwayGraph) {
+        const route = window.RoutePlanner.findMinTransferRoute(subwayGraph, startStation, endStation, {
+            dwellMinutes: 1,
+            transferPenaltyMinutes: 5,
+        });
+        if (route) return route;
+    }
+
     // 检查地铁图是否已经初始化
     if (!subwayGraph) {
         console.error('Subway graph not initialized.');
