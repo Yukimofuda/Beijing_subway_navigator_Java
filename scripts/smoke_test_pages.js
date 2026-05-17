@@ -4,6 +4,7 @@ const vm = require('vm');
 const ROOT = path.resolve(__dirname, '..');
 
 function createElement(tag = 'div') {
+  const listeners = {};
   const element = {
     tagName: tag.toUpperCase(),
     classList: {
@@ -36,11 +37,18 @@ function createElement(tag = 'div') {
       this.children.push(child);
       this.innerHTML += child.textContent || '';
     },
-    addEventListener() {},
+    addEventListener(event, callback) {
+      listeners[event] = listeners[event] || [];
+      listeners[event].push(callback);
+    },
+    dispatchEvent(event) {
+      for (const callback of listeners[event.type] || []) callback(event);
+    },
     contains(target) {
       return target === this || this.children.includes(target);
     },
     setAttribute() {},
+    _listeners: listeners,
   };
   Object.defineProperty(element, 'options', {
     get() {
@@ -158,13 +166,21 @@ async function testQueryPage(timetable, stationData) {
 
   const sandboxWindow = {
     showToast() {},
+    location: { search: '' },
   };
+  sandboxWindow.window = sandboxWindow;
   const context = vm.createContext({
     document,
     window: sandboxWindow,
     loadTimetableData: async () => timetable,
     fetch: async (url) => {
       if (url === 'data/_station.json') return { ok: true, json: async () => stationData };
+      if (url === 'data/station_pinyin.json') {
+        return {
+          ok: true,
+          json: async () => ({ 西直门: { pinyin: 'xizhimen', initials: 'xzm' } }),
+        };
+      }
       return { ok: false, status: 404, json: async () => ({}) };
     },
     console: { log() {}, warn() {}, error() {} },
@@ -177,8 +193,16 @@ async function testQueryPage(timetable, stationData) {
     Math,
     Date,
     URLSearchParams,
+    CustomEvent: function CustomEvent(type, init = {}) {
+      return { type, detail: init.detail };
+    },
     alert() {},
   });
+  context.window = context;
+  context.globalThis = context;
+  context.location = { search: '' };
+  context.showToast = () => {};
+  runScript('src/transitData.js', context);
   runScript('src/query.js', context);
   await new Promise((r) => setTimeout(r, 120));
   const status = document.getElementById('data-status').textContent;
@@ -189,14 +213,23 @@ async function testQueryPage(timetable, stationData) {
   if (button.disabled) {
     throw new Error('query button still disabled after data load');
   }
+  document.getElementById('start-station').dispatchEvent({ type: 'focus' });
   const startMenu = document.getElementById('start-station-menu').innerHTML;
   if (!startMenu.includes('西直门')) {
     throw new Error('query station picker did not prepare integrated station options');
+  }
+  document.getElementById('start-station').value = 'xzm';
+  document.getElementById('start-station').dispatchEvent({ type: 'input' });
+  if (!document.getElementById('start-station-menu').innerHTML.includes('西直门')) {
+    throw new Error('query station picker did not match pinyin initials');
   }
   context.getRoute();
   const resultHtml = document.getElementById('result').innerHTML;
   if (!resultHtml.includes('乘车方案')) {
     throw new Error('query route did not render a result');
+  }
+  if (!resultHtml.includes('route-line-visual') || !resultHtml.includes('--line-color')) {
+    throw new Error('query route result lost colored route line UI');
   }
 }
 

@@ -140,10 +140,15 @@
 
     async function init() {
         try {
-            const [stationResponse, timetable] = await Promise.all([fetch('data/_station.json'), loadTimetableData()]);
+            const [stationResponse, timetable, pinyinResponse] = await Promise.all([
+                fetch('data/_station.json'),
+                loadTimetableData(),
+                fetch('data/station_pinyin.json').catch(() => null)
+            ]);
             if (!stationResponse.ok) throw new Error(`station data ${stationResponse.status}`);
             stationData = await stationResponse.json();
-            const index = window.TransitData.buildLineIndex(stationData, timetable);
+            const pinyinMap = pinyinResponse?.ok ? await pinyinResponse.json() : {};
+            const index = window.TransitData.buildLineIndex(stationData, timetable, { pinyinMap });
             startPicker = window.TransitData.createStationPicker(index, stationData, {
                 input: refs.start,
                 menu: refs.startMenu,

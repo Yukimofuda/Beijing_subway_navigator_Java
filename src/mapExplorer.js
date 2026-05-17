@@ -397,8 +397,18 @@
         }
     }
 
+    async function loadStationPinyin() {
+        try {
+            const response = await fetch('data/station_pinyin.json');
+            if (!response.ok) return {};
+            return response.json();
+        } catch (_) {
+            return {};
+        }
+    }
+
     async function loadMap() {
-        const [svgText, timetable, stations, aliasOverrides] = await Promise.all([
+        const [svgText, timetable, stations, aliasOverrides, pinyinMap] = await Promise.all([
             fetch('Beijing_Subway_System_Map.svg').then((response) => {
                 if (!response.ok) throw new Error('SVG 加载失败');
                 return response.text();
@@ -408,7 +418,8 @@
                 if (!response.ok) throw new Error('站点数据加载失败');
                 return response.json();
             }),
-            loadAliasOverrides()
+            loadAliasOverrides(),
+            loadStationPinyin()
         ]);
 
         stationAliases = { ...stationAliases, ...aliasOverrides };
@@ -421,7 +432,7 @@
         svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         wireStationHover(svg);
 
-        const index = window.TransitData.buildLineIndex(stationData, timetableData);
+        const index = window.TransitData.buildLineIndex(stationData, timetableData, { pinyinMap });
         stationPicker = window.TransitData.createStationPicker(index, stationData, {
             input: stationSearch,
             menu: stationMenu,
