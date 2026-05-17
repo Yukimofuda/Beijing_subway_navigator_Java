@@ -57,8 +57,46 @@
         return Array.from(new Set(items.filter(Boolean)));
     }
 
+    function normalizeKeyword(value) {
+        return String(value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, '');
+    }
+
+    function normalizeLineQuery(value) {
+        const query = normalizeKeyword(value);
+        if (/^\d+$/.test(query)) return `${query}号线`;
+        if (/^s\d+$/i.test(query)) return `${query.toUpperCase()}线`;
+        return query;
+    }
+
     function lineColor(lineName) {
         return LINE_COLORS[simplifyLineName(lineName)] || '#3c4043';
+    }
+
+    function getStationSearchTokens(stationName, pinyinMap = {}) {
+        const detail = pinyinMap?.[stationName] || {};
+        return orderedUnique([
+            stationName,
+            normalizeKeyword(stationName),
+            normalizeKeyword(detail.pinyin),
+            normalizeKeyword(detail.initials)
+        ]);
+    }
+
+    function getLineSearchTokens(line) {
+        const label = simplifyLineName(line?.label || line);
+        const fullNames = Array.isArray(line?.fullNames) ? line.fullNames : [];
+        const number = label.match(/\d+/)?.[0] || '';
+        return orderedUnique([
+            label,
+            normalizeKeyword(label),
+            number,
+            number ? `${number}号线` : '',
+            ...fullNames,
+            ...fullNames.map(normalizeKeyword)
+        ].filter(Boolean));
     }
 
     function lineSegmentsForStation(index, stationName) {
@@ -93,9 +131,18 @@
         return [];
     }
 
-    function buildLineIndex(stations, timetable) {
+    function buildStationSearchIndex(stations, options = {}) {
+        const pinyinMap = options.pinyinMap || {};
+        return Object.keys(stations || {}).reduce((index, stationName) => {
+            index.set(stationName, getStationSearchTokens(stationName, pinyinMap));
+            return index;
+        }, new Map());
+    }
+
+    function buildLineIndex(stations, timetable, options = {}) {
         const dayData = getDayData(timetable);
         const lineMap = new Map();
+        const pinyinMap = options.pinyinMap || {};
 
         for (const lineName of Object.keys(dayData || {})) {
             const label = simplifyLineName(lineName);
@@ -128,8 +175,86 @@
         return {
             stations: Object.keys(stations || {}).sort((a, b) => a.localeCompare(b, 'zh-CN')),
             lines,
-            lineMap: new Map(lines.map((line) => [line.label, line]))
+            lineMap: new Map(lines.map((line) => [line.label, line])),
+            pinyinMap,
+            stationSearchIndex: buildStationSearchIndex(stations, { pinyinMap })
         };
+    }
+
+    function getOrCreateLineIndex(stations, timetable, options = {}) {
+        if (options.index?.lineMap && options.index?.stations) return options.index;
+        return buildLineIndex(stations, timetable, options);
+    }
+
+    function allLineCandidates(index) {
+        const realLines = index?.lines || [];
+        const realLabels = new Set(realLines.map((line) => line.label));
+        const virtualLines = Object.keys(LINE_COLORS)
+            .filter((label) => !realLabels.has(label))
+            .map((label) => ({ label, fullNames: [label], stations: [], color: lineColor(label), virtual: true }));
+        return [...realLines, ...virtualLines];
+    }
+
+    function matchLineCandidates(index, keyword, options = {}) {
+        const query = normalizeKeyword(keyword);
+        const lineQuery = normalizeLineQuery(keyword);
+        if (!query) return [];
+
+        return allLineCandidates(index)
+            .map((line) => {
+                const tokens = getLineSearchTokens(line);
+                let score = 0;
+                if (tokens.includes(query) || tokens.includes(lineQuery)) score = 100;
+                else if (tokens.some((token) => token.startsWith(query) || token.startsWith(lineQuery))) score = 80;
+                else if (tokens.some((token) => token.includes(query) || token.includes(lineQuery))) score = 60;
+                return { line, score };
+            })
+            .filter((item) => item.score > 0)
+            .sort((a, b) => b.score - a.score || compareLines(a.line.label, b.line.label))
+            .slice(0, options.limit || 8)
+            .map((item) => item.line);
+    }
+
+    function matchStationCandidates(index, stations, keyword, options = {}) {
+        const query = normalizeKeyword(keyword);
+        const rawKeyword = String(keyword || '').trim();
+        const lineFilter = simplifyLineName(options.lineFilter || '');
+        const pinyinMap = options.pinyinMap || index?.pinyinMap || {};
+        const stationSearchIndex = index?.stationSearchIndex || buildStationSearchIndex(stations, { pinyinMap });
+        const pool = lineFilter
+            ? index?.lineMap?.get(lineFilter)?.stations || []
+            : index?.stations || Object.keys(stations || {}).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+
+        if (!query) return pool.slice(0, options.limit || 20);
+
+        return pool
+            .map((stationName) => {
+                const tokens = stationSearchIndex.get(stationName) || getStationSearchTokens(stationName, pinyinMap);
+                let score = 0;
+                if (stationName === rawKeyword) score = 100;
+                else if (stationName.startsWith(rawKeyword)) score = 90;
+                else if (stationName.includes(rawKeyword)) score = 75;
+                else if (tokens.some((token) => token === query)) score = 85;
+                else if (tokens.some((token) => token.startsWith(query))) score = 70;
+                else if (tokens.some((token) => token.includes(query))) score = 50;
+                return { stationName, score };
+            })
+            .filter((item) => item.score > 0)
+            .sort((a, b) => b.score - a.score || a.stationName.localeCompare(b.stationName, 'zh-CN'))
+            .slice(0, options.limit || 20)
+            .map((item) => item.stationName);
+    }
+
+    function resolveStationName(index, stations, inputValue, options = {}) {
+        const value = String(inputValue || '').trim();
+        if (stations?.[value]) return value;
+
+        const matches = matchStationCandidates(index, stations, value, {
+            ...options,
+            limit: 2
+        });
+
+        return matches.length === 1 ? matches[0] : '';
     }
 
     function stationLines(stations, stationName) {
@@ -180,27 +305,55 @@
             }
         }
 
-        function stationPool() {
-            const line = selectedLine();
-            return line ? index.lineMap.get(line)?.stations || [] : index.stations;
+        function showLineStations(lineLabel) {
+            setLineMode('select');
+            lineSelect.value = lineLabel;
+            const line = index.lineMap.get(lineLabel);
+            const stationsOnLine = line?.stations || [];
+            menu.innerHTML = stationsOnLine.length
+                ? stationsOnLine.slice(0, 36).map((stationName) => {
+                    const lines = stationLines(stations, stationName);
+                    return `
+                    <button class="combo-option" type="button" data-kind="station" data-value="${stationName}" data-station="${stationName}">
+                        <span class="combo-kind">${lines.join(' / ') || '站点'}</span>${stationName}
+                    </button>
+                `;
+                }).join('')
+                : '<div class="combo-option muted">该线路暂无站点数据</div>';
+            menu.classList.add('is-open');
         }
 
         function renderMenu() {
             const keyword = input.value.trim();
             const line = selectedLine();
-            let candidates = stationPool().filter((stationName) => !keyword || stationName.includes(keyword));
-            if (!line && keyword) {
-                const matchedLine = index.lines.find((item) => item.label.includes(keyword));
-                if (matchedLine) candidates = matchedLine.stations;
+            const lineCandidates = !line && keyword
+                ? matchLineCandidates(index, keyword, { limit: 8 })
+                : [];
+            const stationCandidates = matchStationCandidates(index, stations, keyword, {
+                lineFilter: line,
+                pinyinMap: index.pinyinMap || {},
+                limit: 28
+            });
+            const items = [];
+
+            for (const candidate of lineCandidates) {
+                items.push(`
+                    <button class="combo-option" type="button" data-kind="line" data-value="${candidate.label}">
+                        <span class="combo-kind">线路</span>${candidate.label}
+                    </button>
+                `);
             }
-            menu.innerHTML = candidates.slice(0, 36).map((stationName) => {
+
+            for (const stationName of stationCandidates) {
                 const lines = stationLines(stations, stationName);
-                return `
-                    <button class="combo-option" type="button" data-station="${stationName}">
+                items.push(`
+                    <button class="combo-option" type="button" data-kind="station" data-value="${stationName}" data-station="${stationName}">
                         <span class="combo-kind">${lines.join(' / ') || '站点'}</span>${stationName}
                     </button>
-                `;
-            }).join('') || '<div class="combo-option muted">没有匹配站点</div>';
+                `);
+            }
+
+            menu.innerHTML = items.join('') || '<div class="combo-option muted">没有匹配站点</div>';
             menu.classList.add('is-open');
         }
 
@@ -218,11 +371,17 @@
             menu.classList.remove('is-open');
         });
         menu.addEventListener('click', (event) => {
-            const option = event.target.closest('[data-station]');
+            const option = event.target.closest('.combo-option');
             if (!option) return;
-            applyStation(option.dataset.station);
+            if (option.dataset.kind === 'line') {
+                showLineStations(option.dataset.value);
+                return;
+            }
+            const stationName = option.dataset.station || option.dataset.value;
+            if (!stationName) return;
+            applyStation(stationName);
             menu.classList.remove('is-open');
-            input.dispatchEvent(new CustomEvent('stationchange', { detail: { station: option.dataset.station } }));
+            input.dispatchEvent(new CustomEvent('stationchange', { detail: { station: stationName } }));
         });
         document.addEventListener('click', (event) => {
             if (input.contains(event.target) || menu.contains(event.target)) return;
@@ -230,10 +389,14 @@
         });
         return {
             resolve() {
-                const stationName = input.dataset.station || input.value.trim();
+                const stationName = input.dataset.station || resolveStationName(index, stations, input.value, {
+                    pinyinMap: index.pinyinMap || {},
+                    lineFilter: selectedLine()
+                });
                 return stations[stationName] ? stationName : '';
             },
-            setStation: applyStation
+            setStation: applyStation,
+            renderMenu
         };
     }
 
@@ -243,6 +406,14 @@
         compareLines,
         lineColor,
         buildLineIndex,
+        getOrCreateLineIndex,
+        buildStationSearchIndex,
+        normalizeKeyword,
+        getStationSearchTokens,
+        getLineSearchTokens,
+        matchStationCandidates,
+        matchLineCandidates,
+        resolveStationName,
         stationLines,
         lineSegmentsForStation,
         createStationPicker,

@@ -1,0 +1,38 @@
+{
+  "西直门": {
+    "pinyin": "xizhimen",
+    "initials": "xzm"
+  },
+  "海淀黄庄": {
+    "pinyin": "haidianhuangzhuang",
+    "initials": "hdhz"
+  },
+  "海淀五路居": {
+    "pinyin": "haidianwuluju",
+    "initials": "hdwlj"
+  },
+  "国贸": {
+    "pinyin": "guomao",
+    "initials": "gm"
+  },
+  "北京南站": {
+    "pinyin": "beijingnanzhan",
+    "initials": "bjnz"
+  },
+  "积水潭": {
+    "pinyin": "jishuitan",
+    "initials": "jst"
+  },
+  "宋家庄": {
+    "pinyin": "songjiazhuang",
+    "initials": "sjz"
+  },
+  "东直门": {
+    "pinyin": "dongzhimen",
+    "initials": "dzm"
+  },
+  "蓟门桥": {
+    "pinyin": "jimenqiao",
+    "initials": "jmq"
+  }
+}
