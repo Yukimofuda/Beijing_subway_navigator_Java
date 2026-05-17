@@ -79,6 +79,14 @@
     window.addEventListener('pointercancel', up, { once: true });
   });
 
+  document.querySelectorAll('[data-local-image]').forEach((tile) => {
+    const imagePath = tile.dataset.localImage;
+    if (!imagePath) return;
+    const image = new Image();
+    image.onload = () => tile.style.setProperty('--tile-image', `url("${imagePath}")`);
+    image.src = imagePath;
+  });
+
   // Subtle toast helper for non-intrusive errors
   window.showToast = function showToast(message) {
     const toast = document.createElement('div');
