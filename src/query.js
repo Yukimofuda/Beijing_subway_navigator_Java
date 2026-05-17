@@ -6,7 +6,7 @@ let subwayGraph = null; // 基于时刻表数据构地铁线路图，使用邻�
 let transferWeights = {}; // 换乘站点的权重，用于标记换乘站
 let isDataReady = false; // 标记时刻表和站点数据是否加载完成
 let stationPickerIndex = null;
-let timetableIndex = null;
+let stationPinyinMap = {};
 
 function setDataReadyState(ready) {
     isDataReady = ready;
@@ -17,9 +17,6 @@ function setDataReadyState(ready) {
 }
 
 function simplifyLineName(lineName) {
-    if (window.TransferPolicy?.simplifyLineName) {
-        return window.TransferPolicy.simplifyLineName(lineName);
-    }
     return String(lineName || '')
         .replace(/^地铁/, '')
         .replace(/\(.+\)$/, '')
@@ -28,44 +25,24 @@ function simplifyLineName(lineName) {
 }
 
 function canonicalLineName(lineName) {
-    return window.TransferPolicy?.normalizeLineName
-        ? window.TransferPolicy.normalizeLineName(lineName)
-        : simplifyLineName(lineName);
+    return simplifyLineName(lineName);
 }
 
 function buildStationPickerIndex(stations) {
-    if (window.TransitData && timetableData) {
-        return window.TransitData.buildLineIndex(stations, timetableData);
+    if (!window.TransitData || !window.TransitData.buildLineIndex) {
+        throw new Error('TransitData.buildLineIndex is required for station picker');
     }
-    const lines = new Map();
-    for (const stationName of Object.keys(stations || {})) {
-        const info = stations[stationName];
-        if (!info || !Array.isArray(info.lines)) continue;
-        for (const lineName of info.lines) {
-            const shortName = canonicalLineName(lineName);
-            if (!lines.has(shortName)) {
-                lines.set(shortName, { label: shortName, fullNames: new Set(), stations: new Set() });
-            }
-            const item = lines.get(shortName);
-            item.fullNames.add(lineName);
-            item.stations.add(stationName);
-        }
-    }
-
-    return {
-        stations: Object.keys(stations || {}).sort((a, b) => a.localeCompare(b, 'zh-CN')),
-        lines: Array.from(lines.values())
-            .map((item) => ({
-                label: item.label,
-                fullNames: Array.from(item.fullNames),
-                stations: Array.from(item.stations).sort((a, b) => a.localeCompare(b, 'zh-CN')),
-            }))
-            .sort((a, b) => a.label.localeCompare(b.label, 'zh-CN')),
-    };
+    return window.TransitData.buildLineIndex(stations, timetableData, {
+        pinyinMap: stationPinyinMap || {}
+    });
 }
 
 function setupStationPickers() {
     if (!stationPickerIndex) return;
+    if (!window.TransitData || !window.TransitData.createStationPicker) {
+        console.error('TransitData.createStationPicker is required for query station picker');
+        return;
+    }
 
     const configs = [
         {
@@ -82,188 +59,11 @@ function setupStationPickers() {
         },
     ];
 
-    if (window.TransitData) {
-        const pickers = configs.map((config) => window.TransitData.createStationPicker(stationPickerIndex, stationData, config));
-        window.__queryPickers = { start: pickers[0], end: pickers[1] };
-        applyRouteParams();
-        return;
-    }
-
-    function fillLineSelect(config) {
-        const selected = config.lineSelect.value;
-        config.lineSelect.innerHTML = [
-            '<option value="">全部线路</option>',
-            ...stationPickerIndex.lines.map((line) => `<option value="${line.label}">${line.label}</option>`),
-        ].join('');
-        if (selected && stationPickerIndex.lines.some((line) => line.label === selected)) config.lineSelect.value = selected;
-    }
-
-    function setLinePickerMode(config, mode, text) {
-        if (mode === 'summary') {
-            config.lineSelect.hidden = true;
-            config.lineSummary.hidden = false;
-            config.lineSummary.value = text;
-            return;
-        }
-        config.lineSummary.hidden = true;
-        config.lineSelect.hidden = false;
-    }
-
-    function selectedLine(config) {
-        return config.lineSelect.hidden ? '' : config.lineSelect.value;
-    }
-
-    function stationLines(stationName) {
-        return Array.from(new Set((stationData[stationName]?.lines || []).map(canonicalLineName))).sort((a, b) => a.localeCompare(b, 'zh-CN'));
-    }
-
-    function applyStationLineState(config, stationName) {
-        const lines = stationLines(stationName);
-        if (!lines.length) {
-            setLinePickerMode(config, 'select');
-            return;
-        }
-        if (lines.length === 1) {
-            setLinePickerMode(config, 'select');
-            config.lineSelect.value = lines[0];
-            return;
-        }
-        setLinePickerMode(config, 'summary', lines.join(' / '));
-    }
-
-    function clearStation(config) {
-        config.input.value = '';
-        delete config.input.dataset.station;
-        setLinePickerMode(config, 'select');
-    }
-
-    function getMatches(config, keyword) {
-        const value = keyword.trim();
-        const lower = value.toLowerCase();
-        const lineFilter = selectedLine(config);
-        const lineMatches = stationPickerIndex.lines
-            .filter((line) => {
-                if (lineFilter && line.label !== lineFilter) return false;
-                if (!value) return true;
-                return line.label.toLowerCase().includes(lower) || line.fullNames.some((name) => name.toLowerCase().includes(lower));
-            })
-            .slice(0, 7);
-
-        const lineStationPool = new Set();
-        for (const line of lineMatches) line.stations.forEach((stationName) => lineStationPool.add(stationName));
-
-        const allowedStations = lineFilter
-            ? stationPickerIndex.lines.find((line) => line.label === lineFilter)?.stations || []
-            : stationPickerIndex.stations;
-        const directStations = allowedStations.filter((stationName) => !value || stationName.includes(value));
-        const stations = Array.from(new Set([...directStations, ...lineStationPool]))
-            .sort((a, b) => {
-                const aStarts = value && a.startsWith(value) ? -1 : 0;
-                const bStarts = value && b.startsWith(value) ? -1 : 0;
-                if (aStarts !== bStarts) return aStarts - bStarts;
-                return a.localeCompare(b, 'zh-CN');
-            })
-            .slice(0, 16);
-
-        return { lineMatches, stations };
-    }
-
-    function renderMenu(config, keyword) {
-        if (!config.input || !config.menu) return;
-        const { lineMatches, stations } = getMatches(config, keyword);
-        const items = [];
-
-        if (!selectedLine(config) && keyword.trim()) {
-            for (const line of lineMatches) {
-                items.push(`
-                    <button class="combo-option" type="button" data-kind="line" data-value="${line.label}">
-                        <span class="combo-kind">线路</span>${line.label}
-                    </button>
-                `);
-            }
-        }
-
-        for (const stationName of stations) {
-            const lines = stationLines(stationName).join(' / ') || '站点';
-            items.push(`
-                <button class="combo-option" type="button" data-kind="station" data-value="${stationName}">
-                    <span class="combo-kind">${lines}</span>${stationName}
-                </button>
-            `);
-        }
-
-        config.menu.innerHTML = items.join('') || '<div class="combo-option muted">没有匹配站点</div>';
-        config.menu.classList.add('is-open');
-    }
-
-    function chooseStation(config, stationName) {
-        config.input.value = stationName;
-        config.input.dataset.station = stationName;
-        applyStationLineState(config, stationName);
-        config.menu.classList.remove('is-open');
-    }
-
-    function showLineStations(config, lineLabel) {
-        const line = stationPickerIndex.lines.find((item) => item.label === lineLabel);
-        if (!line) return;
-        setLinePickerMode(config, 'select');
-        config.lineSelect.value = lineLabel;
-        config.input.value = '';
-        delete config.input.dataset.station;
-        config.menu.innerHTML = line.stations
-            .slice(0, 28)
-            .map((stationName) => `
-                <button class="combo-option" type="button" data-kind="station" data-value="${stationName}">
-                    <span class="combo-kind">${line.label}</span>${stationName}
-                </button>
-            `)
-            .join('');
-        config.menu.classList.add('is-open');
-    }
-
-    for (const config of configs) {
-        if (!config.input || !config.menu || !config.lineSelect || !config.lineSummary) continue;
-        fillLineSelect(config);
-
-        config.input.addEventListener('focus', () => renderMenu(config, config.input.value));
-        config.input.addEventListener('input', () => {
-            delete config.input.dataset.station;
-            setLinePickerMode(config, 'select');
-            if (stationData[config.input.value.trim()]) {
-                config.input.dataset.station = config.input.value.trim();
-                applyStationLineState(config, config.input.value.trim());
-            }
-            renderMenu(config, config.input.value);
-        });
-        config.lineSelect.addEventListener('change', () => {
-            if (config.input.dataset.station) {
-                const lines = stationLines(config.input.dataset.station);
-                if (config.lineSelect.value && !lines.includes(config.lineSelect.value)) clearStation(config);
-            }
-            renderMenu(config, config.input.value);
-            config.menu.classList.remove('is-open');
-        });
-        renderMenu(config, config.input.value);
-        config.menu.classList.remove('is-open');
-
-        config.menu.addEventListener('click', (event) => {
-            const option = event.target.closest('.combo-option');
-            if (!option || !option.dataset.value) return;
-            if (option.dataset.kind === 'line') {
-                showLineStations(config, option.dataset.value);
-                return;
-            }
-            chooseStation(config, option.dataset.value);
-        });
-    }
-
-    document.addEventListener('click', (event) => {
-        for (const config of configs) {
-            if (!config.input || !config.menu) continue;
-            if (config.input.contains(event.target) || config.menu.contains(event.target)) continue;
-            config.menu.classList.remove('is-open');
-        }
-    });
+    const pickers = configs.map((config) =>
+        window.TransitData.createStationPicker(stationPickerIndex, stationData, config)
+    );
+    window.__queryPickers = { start: pickers[0], end: pickers[1] };
+    applyRouteParams();
 }
 
 function applyRouteParams() {
@@ -283,23 +83,30 @@ function swapRouteEndpoints() {
 }
 
 function resolvePickerStation(inputId) {
+    const input = document.getElementById(inputId);
     if (window.__queryPickers) {
         const picker = inputId.includes('start') ? window.__queryPickers.start : window.__queryPickers.end;
         const stationName = picker?.resolve();
         if (stationName) return stationName;
     }
-    const input = document.getElementById(inputId);
     const inputValue = input.value.trim();
     if (input.dataset.station && stationData[input.dataset.station]) return input.dataset.station;
     if (stationData && stationData[inputValue]) return inputValue;
 
-    const matches = Object.keys(stationData || {}).filter((stationName) => stationName.includes(inputValue));
-    if (matches.length === 1) {
-        input.value = matches[0];
-        input.dataset.station = matches[0];
-        return matches[0];
+    if (window.TransitData?.resolveStationName) {
+        const stationName = window.TransitData.resolveStationName(
+            stationPickerIndex,
+            stationData,
+            inputValue,
+            { pinyinMap: stationPickerIndex?.pinyinMap || {} }
+        );
+        if (stationName) {
+            input.value = stationName;
+            input.dataset.station = stationName;
+            return stationName;
+        }
     }
-    return inputValue;
+    return '';
 }
 
 // 设置出行模式
@@ -347,23 +154,22 @@ Promise.all([
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         // 将响应体解析为JSON格式
         return response.json();
-    })
+    }),
+    fetch('data/station_pinyin.json')
+        .then(response => (response.ok ? response.json() : {}))
+        .catch(() => ({}))
 ])
-    .then(([timetable, stations]) => {
+    .then(([timetable, stations, pinyinMap]) => {
         // 当两个Promise都成功resolved后，将返回的数据分别赋值给timetableData和stationData
         timetableData = timetable;
         stationData = stations;
+        stationPinyinMap = pinyinMap || {};
         stationPickerIndex = buildStationPickerIndex(stations);
         //控制台调试测试
         console.log('Timetable lines:', Object.keys(timetable)); // 在控制台输出时刻表包含的线路名称
         console.log('Stations loaded:', Object.keys(stations)); // 在控制台输出加载的站点数量
         timetableData = normalizeTimetableData(timetable); // 调用normalizeTimetableData函数规范化时刻表数据
-        subwayGraph = window.GraphBuilder
-            ? window.GraphBuilder.buildSubwayGraph(timetable, stations, { dayType: '工作日', bidirectional: true })
-            : buildGraph(timetableData); // 调用buildGraph函数，使用加载的时刻表数据构建地铁线路图
-        timetableIndex = window.TimetableService
-            ? window.TimetableService.buildArrivalIndex(timetable, { dayType: '工作日' })
-            : null;
+        subwayGraph = buildGraph(timetableData); // 调用buildGraph函数，使用加载的时刻表数据构建地铁线路图
         console.log('Stations in graph:', Object.keys(subwayGraph.adjacencyList)); // 输出地铁图中包含的站点数量
         assignTransferWeights(subwayGraph.adjacencyList); // 调用assignTransferWeights函数，为地铁图中的换乘站分配权重
         setupStationPickers();
@@ -405,10 +211,6 @@ setDataReadyState(false);
 
 // 构建地铁线路图
 function buildGraph(timetable) {
-    if (window.GraphBuilder) {
-        return window.GraphBuilder.buildSubwayGraph(timetable, stationData, { bidirectional: true });
-    }
-
     const adjacencyList = {}; // 邻接表，用于存储每个站点的相邻站点和线路信息，键是站点名称，值是一个包含相邻站点信息的数组
     const edgeWeights = {}; // 边权重，用于存储站点之间travelTime，键是 `<span class="math-inline">\{station1\}\-</span>{station2}-<span class="math-inline">\{line\}\-</span>{direction}`，值是travelTime（分钟）
     const lineOfConnection = {}; // 存储连接两个站点的线路名称，键与edgeWeights相同，值是线路名称
@@ -576,12 +378,6 @@ function buildGraph(timetable) {
 
 // 时间字符串（HH:MM）转换为分钟的函数
 function timeStringToMinutes(timeStr) {
-    if (window.TimetableService?.timeStringToMinutes) {
-        return window.TimetableService.timeStringToMinutes(timeStr);
-    }
-    if (window.GraphBuilder?.timeStringToMinutes) {
-        return window.GraphBuilder.timeStringToMinutes(timeStr);
-    }
     // 使用正则表达式检查时间字符串的格式是否为HH:MM
     if (!timeStr || !timeStr.match(/^\d{2}:\d{2}$/)) {
         console.error('Invalid time string:', timeStr);
@@ -597,14 +393,6 @@ function timeStringToMinutes(timeStr) {
 
 // Dijkstra最短时间算法
 function dijkstraShortestPath(startStation, endStation) {
-    if (window.RoutePlanner && subwayGraph) {
-        const route = window.RoutePlanner.findFastestRoute(subwayGraph, startStation, endStation, {
-            dwellMinutes: 1,
-            transferPenaltyMinutes: 5,
-        });
-        if (route) return route;
-    }
-
     // 检查地铁图是否已经初始化
     if (!subwayGraph) {
         console.error('Subway graph not initialized.');
@@ -644,8 +432,8 @@ function dijkstraShortestPath(startStation, endStation) {
     while (priorityQueue.length > 0) {
         // 对优先队列中的站点按总时间（如果换乘次数相同）和换乘次数进行排序，优先处理换乘次数少的，其次是时间短的
         priorityQueue.sort((a, b) => {
-            if (a.transfers === b.transfers) return a.time - b.time;
-            return a.transfers - b.transfers; // 优先考虑最少换乘
+            if (a.time === b.time) return a.transfers - b.transfers;
+            return a.time - b.time;
         });
         // 从优先队列中取出具有最小时间的站点
         const { station: currentStation, time: currentTime, prevLine, prevDirection, transfers } = priorityQueue.shift();
@@ -678,8 +466,8 @@ function dijkstraShortestPath(startStation, endStation) {
 
             let additionalTime = travelTime; // 从当前站点到相邻站点的基本旅行时间
             let newTransfers = transfers; // 新的换乘次数，初始值为当前站点的换乘次数
-            // 如果存在上一条线路，并且上一条线路与当前连接的线路不同，或者方向不同，则认为发生了换乘
-            if (prevLine && (prevLine !== connectingLine || prevDirection !== direction)) {
+            // 如果存在上一条线路，并且上一条线路与当前连接的线路不同，则认为发生了换乘
+            if (prevLine && prevLine !== connectingLine) {
                 additionalTime += 5; // 增加 5 分钟的换乘时间
                 newTransfers += 1; // 换乘次数加 1
             }
@@ -710,14 +498,6 @@ function dijkstraShortestPath(startStation, endStation) {
 
 // Dijkstra最少换乘算法
 function dijkstraLeastTransfers(startStation, endStation) {
-    if (window.RoutePlanner && subwayGraph) {
-        const route = window.RoutePlanner.findMinTransferRoute(subwayGraph, startStation, endStation, {
-            dwellMinutes: 1,
-            transferPenaltyMinutes: 5,
-        });
-        if (route) return route;
-    }
-
     // 检查地铁图是否已经初始化
     if (!subwayGraph) {
         console.error('Subway graph not initialized.');
@@ -803,7 +583,7 @@ function dijkstraLeastTransfers(startStation, endStation) {
             // 判断是否发生了换乘
             const isTransfer = prevLine && prevLine !== connectingLine;
             const newLineChangeCount = currentLineChangeCount + (isTransfer ? 1 : 0); // 如果换乘，换乘次数加1
-            const newTime = currentTime + travelTime; // 计算到达相邻站点的新时间（
+            const newTime = currentTime + travelTime + (isTransfer ? 5 : 0); // 计算到达相邻站点的新静态时间，换乘时统一计入 5 分钟
 
             // 如果在新的路径的换乘次数更少，或者换乘次数相同但时间更短时，更新信息
             if (
@@ -956,10 +736,6 @@ function findNextDeparture(fromStation, toStation, currentTimeInMinutes, prevLin
 
 // 获取指定站点的首班车时间的函数
 function getFirstTrainTime(station) {
-if (window.TimetableService && timetableIndex) {
-    const firstTrain = window.TimetableService.getFirstTrain(timetableIndex, station);
-    if (firstTrain) return firstTrain.minute;
-}
 let earliest = Infinity; // 初始化最早时间为无穷大
 // 遍历所有线路
 for (const line in timetableData) {
@@ -1088,16 +864,38 @@ function buildRouteLineDiagram(segments) {
     `;
 }
 
+function countTransfersFromLines(lines) {
+    return Math.max(0, simplifyLines(lines || []).length - 1);
+}
+
+function normalizeRouteMetrics(route, actualTimeResult) {
+    const staticTravelMinutes = Number(route.time ?? route.totalTime ?? route.distance ?? 0);
+    const estimatedActualMinutes = actualTimeResult
+        ? actualTimeResult.endTime - actualTimeResult.startTime
+        : null;
+    return {
+        path: route.path,
+        staticTravelMinutes,
+        transferCount: countTransfersFromLines(route.lines),
+        estimatedDepartureTime: actualTimeResult ? actualTimeResult.startTime : null,
+        estimatedArrivalTime: actualTimeResult ? actualTimeResult.endTime : null,
+        estimatedActualMinutes,
+        actualTimeResult
+    };
+}
+
 // 查询地铁路线的函数
 function getRoute() {
 const startStation = resolvePickerStation('start-station'); // 获取用户输入或选择的起始站
 const endStation = resolvePickerStation('end-station'); // 获取用户输入或选择的目的站
 
+// 检查是否输入了起始站和目的站
 if (!startStation || !endStation) {
     alert('请输入起始站和目的站！');
     return;
 }
 
+// 检查地铁图和时刻表是否已加载
 if (!isDataReady || !subwayGraph || !timetableData) {
     if (window.showToast) window.showToast('未加载');
     return;
@@ -1106,133 +904,63 @@ if (!isDataReady || !subwayGraph || !timetableData) {
 console.log(`Querying route from ${startStation} to ${endStation} with requirement: ${travelRequirement}`);
 
 const resultDiv = document.getElementById('result'); // 获取用于显示结果的HTML元素
-const departMinute = currentTimeInMinutes || getCurrentTimeMinutes();
 let routeResult = null; // 用于存储路线查询结果
-let usedTimeDependentPlanner = false;
 
-const useTimeDependent =
-    travelRequirement === '最短时间' &&
-    window.TimeDependentPlanner &&
-    window.TimetableService &&
-    timetableIndex;
-
-if (useTimeDependent) {
-    usedTimeDependentPlanner = true;
-    routeResult = window.TimeDependentPlanner.findEarliestArrivalRoute(
-        subwayGraph,
-        timetableIndex,
-        startStation,
-        endStation,
-        departMinute,
-        {
-            dwellMinutes: 1,
-            transferPenaltyMinutes: 5,
-        }
-    );
+// 根据用户选择的出行偏好调用不同的Dijkstra算法
+if (travelRequirement === '最短时间') {
+    routeResult = dijkstraShortestPath(startStation, endStation);
+} else {
+    routeResult = dijkstraLeastTransfers(startStation, endStation);
 }
 
-if (!routeResult && (!usedTimeDependentPlanner || travelRequirement !== '最短时间') && window.RoutePlanner) {
-    routeResult = window.RoutePlanner.findRoute(
-        subwayGraph,
-        startStation,
-        endStation,
-        {
-            preference: travelRequirement === '最少换乘'
-                ? window.RoutePlanner.RoutePreference.MIN_TRANSFER
-                : window.RoutePlanner.RoutePreference.FASTEST,
-            dwellMinutes: 1,
-            transferPenaltyMinutes: 5,
-        }
-    );
-}
-
-if (!routeResult && !window.RoutePlanner) {
-    routeResult = travelRequirement === '最短时间'
-        ? dijkstraShortestPath(startStation, endStation)
-        : dijkstraLeastTransfers(startStation, endStation);
-}
-
+// 如果没有找到合适的路线
 if (!routeResult) {
-    resultDiv.innerHTML = '<div class="route-path-card">未找到可用路径，可能已错过末班车或数据不完整。</div>';
+    resultDiv.innerHTML = '<div class="route-path-card">未找到合适的路线，请检查站点名称或时刻表数据。</div>';
     return;
 }
 
-const summary = window.RouteSummary
-    ? window.RouteSummary.buildRouteSummary(routeResult)
-    : null;
-
-const warnings =
-    window.RouteFeasibility && timetableIndex
-        ? window.RouteFeasibility.checkLastTrainRisk(routeResult, timetableIndex, {
-            safetyMarginMinutes: 5,
-        })
-        : [];
-
-renderRouteResult(resultDiv, routeResult, summary, warnings);
+// 计算实际出行时间
+const actualTime = calculateActualTime(startStation, endStation, routeResult.path, currentTimeInMinutes);
+// 如果无法计算实际时间
+if (!actualTime) {
+    resultDiv.innerHTML = '<div class="route-path-card">无法计算实际时间，请检查时刻表数据。</div>';
+    return;
 }
 
-function getCurrentTimeMinutes() {
-    const now = new Date();
-    return now.getHours() * 60 + now.getMinutes();
-}
+// 计算票价
+const fare = calculateFare(routeResult.path);
+const routeMetrics = normalizeRouteMetrics(routeResult, actualTime);
+// 从实际出行时间结果中提取路径、出发时间、到达时间、行程段和每站到达时间
+const { path, startTime, endTime, segments, stationTimes } = actualTime;
+// 简化显示的线路信息
+const simplifiedLines = simplifyLines(segments.map(s => s.line));
+// 计算换乘次数
+const transferCount = routeMetrics.transferCount;
 
-function renderRouteResult(resultDiv, route, summary, warnings) {
-const title = `${travelRequirement}乘车方案`;
-const path = route.path || [];
-const pathText = path.join(' → ');
-const totalMinutes = Math.round(route.totalMinutes ?? route.totalTime ?? 0);
-const transferCount = route.transfers ?? summary?.transferCount ?? 0;
-const fare = calculateFare(path);
-const formatTime = window.TimetableService?.minutesToTimeString || minutesToTimeString;
+// 构建每站到站时间的HTML
+let stationTimesHTML = '<div class="route-path-card"><strong>每站到站时间</strong><ul class="station-time-list">';
+stationTimes.forEach(({ station, time }) => {
+    stationTimesHTML += `<li><span>${station}</span><strong>${minutesToTimeString(time)}</strong></li>`;
+});
+stationTimesHTML += '</ul></div>';
 
-const departText = Number.isFinite(route.departMinute)
-    ? formatTime(route.departMinute)
-    : (currentTimeInMinutes ? formatTime(currentTimeInMinutes) : '');
-
-const arriveText = Number.isFinite(route.arriveMinute)
-    ? formatTime(route.arriveMinute)
-    : '';
-
-const routeLines = summary?.lines?.length
-    ? summary.lines
-    : simplifyLines(route.lines || []);
-
-const warningHtml = warnings.length
-    ? `
-      <section class="route-path-card route-warning">
-        <strong>末班车风险</strong>
-        <ul>
-          ${warnings.map((warning) => `<li>${warning.message}</li>`).join('')}
-        </ul>
-      </section>
-    `
-    : '';
-
-const segmentsHtml = summary?.segments?.length
-    ? summary.segments.map((segment) => {
-        if (segment.type === 'transfer') {
-            return `<li>换乘：${segment.station}，${segment.fromLine} → ${segment.toLine}，约 ${segment.minutes} 分钟</li>`;
-        }
-        const waitText = segment.waitMinutes ? `，候车约 ${Math.round(segment.waitMinutes)} 分钟` : '';
-        return `<li>${segment.line}：${segment.from} → ${segment.to}，${segment.stops.length} 站，约 ${Math.round(segment.rideMinutes)} 分钟${waitText}</li>`;
-    }).join('')
-    : '<li>暂无分段详情</li>';
-
+// 将查询结果显示在页面上
 resultDiv.innerHTML = `
-    <div class="route-path-card route-result">
-        <div class="pill">${title}</div>
-        <h3 style="margin:10px 0 0;">${route.start || path[0]} → ${route.end || path[path.length - 1]}</h3>
-        <p class="subtitle">线路：${routeLines.join(' → ') || '未知线路'}</p>
+    <div class="route-path-card">
+        <div class="pill">${travelRequirement}乘车方案</div>
+        <h3 style="margin:10px 0 0;">${startStation} → ${endStation}</h3>
+        <p class="subtitle">线路：${simplifiedLines.join(' → ')}</p>
     </div>
     <div class="route-summary">
-        <div class="route-summary-card"><span class="combo-kind">预计出发</span><strong>${departText || '--:--'}</strong></div>
-        <div class="route-summary-card"><span class="combo-kind">预计到达</span><strong>${arriveText || '按静态路径估算'}</strong></div>
-        <div class="route-summary-card"><span class="combo-kind">总时间</span><strong>${totalMinutes} 分钟</strong></div>
+        <div class="route-summary-card"><span class="combo-kind">预计出发</span><strong>${minutesToTimeString(startTime)}</strong></div>
+        <div class="route-summary-card"><span class="combo-kind">预计到达</span><strong>${minutesToTimeString(endTime)}</strong></div>
+        <div class="route-summary-card"><span class="combo-kind">静态路径耗时</span><strong>${routeMetrics.staticTravelMinutes} 分钟</strong></div>
+        <div class="route-summary-card"><span class="combo-kind">预计实际出行</span><strong>${routeMetrics.estimatedActualMinutes} 分钟</strong></div>
         <div class="route-summary-card"><span class="combo-kind">费用 / 换乘</span><strong>${fare} 元 · ${transferCount < 0 ? 0 : transferCount} 次</strong></div>
     </div>
-    ${warningHtml}
-    <div class="route-path-card"><strong>分段方案</strong><ul class="station-time-list">${segmentsHtml}</ul></div>
-    <div class="route-path-card"><strong>完整路径</strong><p class="subtitle">${pathText}</p></div>
+    <div class="route-path-card"><strong>线路与站点</strong>${buildRouteLineDiagram(segments)}</div>
+    <div class="route-path-card"><strong>完整路径</strong><p class="subtitle">${path.join(' → ')}</p></div>
+    ${stationTimesHTML}
 `;
 }
 
