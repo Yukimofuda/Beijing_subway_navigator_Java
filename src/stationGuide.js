@@ -108,6 +108,82 @@
         return link;
     }
 
+    function normalizeFacilityItems(items) {
+        if (!items) return [];
+        if (Array.isArray(items)) return items.map((item) => String(item || '').trim()).filter(Boolean);
+        return [String(items).trim()].filter(Boolean);
+    }
+
+    function renderFacilityGroup(title, items) {
+        const list = normalizeFacilityItems(items);
+        if (!list.length) return null;
+        const group = document.createElement('section');
+        group.className = 'station-facility-group';
+        group.appendChild(node('h4', title));
+        const ul = document.createElement('ul');
+        list.forEach((item) => {
+            ul.appendChild(node('li', item));
+        });
+        group.appendChild(ul);
+        return group;
+    }
+
+    function renderFacilitySource(source) {
+        if (!source) return null;
+        const sourceNode = document.createElement('p');
+        sourceNode.className = 'station-data-source';
+        const provider = source.provider || '公开站点信息';
+        const updatedAt = source.updatedAt || '未知';
+        sourceNode.appendChild(document.createTextNode(`数据来源：${provider}，更新日期：${updatedAt}`));
+        if (source.url) {
+            sourceNode.appendChild(document.createTextNode(' · '));
+            sourceNode.appendChild(createLink('查看来源', source.url, 'chip'));
+        }
+        return sourceNode;
+    }
+
+    function renderFacilitySection(detail) {
+        const section = document.createElement('section');
+        section.className = 'station-facilities';
+        section.appendChild(node('h3', '站内设施', 'section-title'));
+
+        if (!detail?.facilities) {
+            section.appendChild(node('p', '暂无详细站内设施数据。', 'muted'));
+            return section;
+        }
+
+        const facilities = detail.facilities;
+        const grid = document.createElement('div');
+        grid.className = 'station-facility-grid';
+        [
+            ['卫生间', facilities.toilet],
+            ['无障碍卫生间', facilities.accessibleToilet],
+            ['直升电梯', facilities.elevator],
+            ['坡道', facilities.ramp],
+            ['AED', facilities.aed],
+            ['自动售票机', facilities.ticketMachine],
+            ['乘客服务中心', facilities.serviceCenter],
+            ['警务室', facilities.policeOffice],
+            ['综合售货机', facilities.vendingMachine],
+            ['自动售水机', facilities.waterMachine],
+            ['寄存柜', facilities.locker],
+            ['共享充电宝', facilities.powerBank]
+        ].forEach(([title, items]) => {
+            const group = renderFacilityGroup(title, items);
+            if (group) grid.appendChild(group);
+        });
+
+        if (grid.childElementCount) {
+            section.appendChild(grid);
+        } else {
+            section.appendChild(node('p', '暂无详细站内设施数据。', 'muted'));
+        }
+
+        const source = renderFacilitySource(detail.source);
+        if (source) section.appendChild(source);
+        return section;
+    }
+
     function renderList() {
         const stations = currentStationList();
         clearNode(refs.list);
@@ -172,6 +248,7 @@
             facts.appendChild(tile);
         });
         section.appendChild(facts);
+        section.appendChild(renderFacilitySection(detail));
 
         if (detail?.tips) {
             const tips = document.createElement('div');
@@ -316,16 +393,18 @@
 
     async function init() {
         try {
-            const [stationResponse, timetable, detailsResponse] = await Promise.all([
+            const [stationResponse, timetable, detailsResponse, pinyinResponse] = await Promise.all([
                 fetch('data/_station.json'),
                 loadTimetableData(),
-                fetch('data/station_details.json').catch(() => null)
+                fetch('data/station_details.json').catch(() => null),
+                fetch('data/station_pinyin.json').catch(() => null)
             ]);
             if (!stationResponse.ok) throw new Error(`station data ${stationResponse.status}`);
             state.stations = await stationResponse.json();
             state.timetable = timetable;
             state.details = detailsResponse?.ok ? await detailsResponse.json() : {};
-            state.index = window.TransitData.buildLineIndex(state.stations, timetable);
+            const pinyinMap = pinyinResponse?.ok ? await pinyinResponse.json() : {};
+            state.index = window.TransitData.buildLineIndex(state.stations, timetable, { pinyinMap });
             state.picker = window.TransitData.createStationPicker(state.index, state.stations, {
                 input: refs.search,
                 menu: refs.menu,

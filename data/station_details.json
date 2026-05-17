@@ -10,29 +10,70 @@
   "北京南站": {
     "sourceName": "北京京港地铁官方站点页",
     "sourceUrl": "https://www.mtr.bj.cn/service/line/station/5d5a18eeb1ea0278b8fffd71.html",
+    "source": {
+      "provider": "mtr.bj.cn",
+      "url": "https://www.mtr.bj.cn/service/line/station/5d5a18eeb1ea0278b8fffd71.html",
+      "updatedAt": "2026-05-17"
+    },
     "guideMapUrl": "https://www.mtr.bj.cn/__local/9/02/8A/896B781868065917A216B1BDACB_17C20BA5_64075.jpg",
     "knownExits": ["B1", "B2", "D"],
     "exitCountText": "官方服务设施信息可核验 B1、B2、D 等出入口位置；铁路站厅与广场出口以现场导向为准。",
     "services": ["卫生间", "无障碍卫生间", "直升电梯", "自动售票机", "乘客服务中心", "AED", "寄存柜"],
+    "facilities": {
+      "toilet": ["站内卫生间，具体位置以京港地铁站点页和现场导向为准"],
+      "accessibleToilet": ["无障碍卫生间，具体位置以京港地铁站点页和现场导向为准"],
+      "elevator": ["站内直升电梯", "出入口直升电梯位置以官方站点页为准"],
+      "ticketMachine": ["自动售票机"],
+      "serviceCenter": ["乘客服务中心"],
+      "aed": ["AED"],
+      "locker": ["寄存柜"]
+    },
     "nearby": ["北京南站铁路枢纽", "北京南站公交枢纽", "开阳里片区"],
     "tips": "高铁、地铁、公交换乘客流大，建议预留安检与换乘时间。"
   },
   "望京南": {
     "sourceName": "北京京港地铁官方站点页",
     "sourceUrl": "https://www.mtr.bj.cn/service/line/station/5d5a13a4b1ea0278b8fffd18.html",
+    "source": {
+      "provider": "mtr.bj.cn",
+      "url": "https://www.mtr.bj.cn/service/line/station/5d5a13a4b1ea0278b8fffd18.html",
+      "updatedAt": "2026-05-17"
+    },
     "guideMapUrl": "https://www.mtr.bj.cn/__local/7/95/14/6D2F1578F95FC3B1E9F74D24A49_5F7A9EB0_4DB95.jpg",
     "knownExits": ["A", "B", "C"],
     "exitCountText": "官方服务设施信息出现 A、B、C 三个出入口。",
     "services": ["卫生间", "无障碍卫生间", "C口直梯", "自动售票机", "乘客服务中心", "AED"],
+    "facilities": {
+      "toilet": ["站内卫生间"],
+      "accessibleToilet": ["无障碍卫生间"],
+      "elevator": ["C口直梯"],
+      "ticketMachine": ["自动售票机"],
+      "serviceCenter": ["乘客服务中心"],
+      "aed": ["AED"]
+    },
     "nearby": ["望京商务区", "望京公园", "阜通片区"],
     "tips": "14号线通勤客流明显，早晚高峰优先查看下一班车信息。"
   },
   "永丰南": {
     "sourceName": "北京京港地铁官方站点页",
     "sourceUrl": "https://www.mtr.bj.cn/service/line/station/5d5a1291b1ea0278b8fffcf7.html",
+    "source": {
+      "provider": "mtr.bj.cn",
+      "url": "https://www.mtr.bj.cn/service/line/station/5d5a1291b1ea0278b8fffcf7.html",
+      "updatedAt": "2026-05-17"
+    },
     "knownExits": ["B", "C", "D"],
     "exitCountText": "官方服务设施信息可核验 B、C、D 口及无障碍设施位置。",
     "services": ["卫生间", "无障碍卫生间", "B口直梯", "D口直梯", "坡道", "自动售票机", "乘客服务中心", "AED"],
+    "facilities": {
+      "toilet": ["站内卫生间"],
+      "accessibleToilet": ["无障碍卫生间"],
+      "elevator": ["B口直梯", "D口直梯"],
+      "ramp": ["坡道"],
+      "ticketMachine": ["自动售票机"],
+      "serviceCenter": ["乘客服务中心"],
+      "aed": ["AED"]
+    },
     "nearby": ["永丰产业基地", "永丰路片区"],
     "tips": "16号线北段站距较长，建议提前确认方向与末班车。"
   },
