@@ -296,47 +296,83 @@
         activeHovered = null;
     }
 
-    function addHitBox(svg, group) {
+    function cacheStationBox(group) {
         try {
             const box = group.getBBox();
             if (!box.width || !box.height) return;
-            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rect.setAttribute('x', String(box.x - 4));
-            rect.setAttribute('y', String(box.y - 4));
-            rect.setAttribute('width', String(box.width + 8));
-            rect.setAttribute('height', String(box.height + 8));
-            rect.setAttribute('fill', 'transparent');
-            rect.setAttribute('pointer-events', 'all');
-            group.insertBefore(rect, group.firstChild);
+            group.__stationBox = box;
+            group.__stationCenter = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
         } catch (_) {
             // Some SVG groups may not expose a box until fully painted.
         }
+    }
+
+    function getSvgPoint(svg, event) {
+        const matrix = svg.getScreenCTM();
+        if (!matrix) return null;
+        const point = svg.createSVGPoint();
+        point.x = event.clientX;
+        point.y = event.clientY;
+        return point.matrixTransform(matrix.inverse());
+    }
+
+    function distanceToBox(point, box) {
+        const dx = point.x < box.x ? box.x - point.x : point.x > box.x + box.width ? point.x - box.x - box.width : 0;
+        const dy = point.y < box.y ? box.y - point.y : point.y > box.y + box.height ? point.y - box.y - box.height : 0;
+        return Math.hypot(dx, dy);
+    }
+
+    function pickStationGroup(svg, labelGroups, event) {
+        const point = getSvgPoint(svg, event);
+        if (!point) return null;
+        const tolerance = clamp(18 / scale, 2.5, 26);
+        let best = null;
+
+        for (const group of labelGroups) {
+            const box = group.__stationBox;
+            if (!box) continue;
+            const distance = distanceToBox(point, box);
+            if (distance > tolerance) continue;
+            const center = group.__stationCenter;
+            const centerDistance = center ? Math.hypot(point.x - center.x, point.y - center.y) : distance;
+            const score = distance * 1000 + centerDistance + box.width * box.height * 0.0001;
+            if (!best || score < best.score) best = { group, score };
+        }
+
+        return best?.group || null;
     }
 
     function wireStationHover(svg) {
         const labelGroups = Array.from(svg.querySelectorAll('[id^="en_"]'));
         for (const group of labelGroups) {
             group.classList.add('station-hit');
-            addHitBox(svg, group);
-            const rawName = cleanSvgId(group.id);
-            const resolvedName = resolveStationName(group.id);
-            const fallbackTitle = displaySvgName(rawName);
-
-            group.addEventListener('pointermove', (event) => {
-                if (activeHovered && activeHovered !== group) activeHovered.classList.remove('is-hovered');
-                activeHovered = group;
-                group.classList.add('is-hovered');
-                showTooltip(event.clientX, event.clientY, renderArrivalHtml(resolvedName, fallbackTitle));
-            });
-
-            group.addEventListener('pointerleave', hideTooltip);
-            group.addEventListener('click', () => {
-                if (resolvedName && stationSearch) {
-                    stationSearch.value = resolvedName;
-                    renderStationPanel(resolvedName);
-                }
-            });
+            cacheStationBox(group);
+            group.__rawStationName = cleanSvgId(group.id);
+            group.__resolvedStationName = resolveStationName(group.id);
+            group.__fallbackTitle = displaySvgName(group.__rawStationName);
         }
+
+        svg.addEventListener('pointermove', (event) => {
+            const group = pickStationGroup(svg, labelGroups, event);
+            if (!group) {
+                hideTooltip();
+                return;
+            }
+            if (activeHovered && activeHovered !== group) activeHovered.classList.remove('is-hovered');
+            activeHovered = group;
+            group.classList.add('is-hovered');
+            showTooltip(event.clientX, event.clientY, renderArrivalHtml(group.__resolvedStationName, group.__fallbackTitle));
+        });
+
+        svg.addEventListener('pointerleave', hideTooltip);
+        svg.addEventListener('click', (event) => {
+            const group = pickStationGroup(svg, labelGroups, event) || activeHovered;
+            const resolvedName = group?.__resolvedStationName;
+            if (resolvedName && stationSearch) {
+                stationSearch.value = resolvedName;
+                renderStationPanel(resolvedName);
+            }
+        });
 
         if (stationCountEl) stationCountEl.textContent = String(labelGroups.length);
     }
