@@ -153,13 +153,19 @@
                 input: refs.start,
                 menu: refs.startMenu,
                 lineSelect: refs.startLine,
-                lineSummary: refs.startLineSummary
+                lineSummary: refs.startLineSummary,
+                openShowsAll: true,
+                clearStationOnLineChange: true,
+                autoSelectFirstStation: false
             });
             endPicker = window.TransitData.createStationPicker(index, stationData, {
                 input: refs.end,
                 menu: refs.endMenu,
                 lineSelect: refs.endLine,
-                lineSummary: refs.endLineSummary
+                lineSummary: refs.endLineSummary,
+                openShowsAll: true,
+                clearStationOnLineChange: true,
+                autoSelectFirstStation: false
             });
             const params = new URLSearchParams(window.location.search);
             const start = params.get('start');

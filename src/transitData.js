@@ -333,6 +333,7 @@
         if (!input || !menu || !lineSelect) return null;
         const openShowsAll = config.openShowsAll !== false;
         const clearStationOnLineChange = config.clearStationOnLineChange !== false;
+        const resolveFuzzy = config.resolveFuzzy !== false;
 
         fillLineSelect(index, lineSelect);
 
@@ -475,10 +476,14 @@
         });
         return {
             resolve() {
-                const stationName = input.dataset.station || resolveStationName(index, stations, input.value, {
-                    pinyinMap: index.pinyinMap || {},
-                    lineFilter: selectedLine()
-                });
+                let stationName = input.dataset.station || '';
+                if (!stationName && stations[input.value.trim()]) stationName = input.value.trim();
+                if (!stationName && resolveFuzzy) {
+                    stationName = resolveStationName(index, stations, input.value, {
+                        pinyinMap: index.pinyinMap || {},
+                        lineFilter: selectedLine()
+                    });
+                }
                 return stations[stationName] ? stationName : '';
             },
             setStation: applyStation,

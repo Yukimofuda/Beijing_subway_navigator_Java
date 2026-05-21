@@ -30,7 +30,15 @@ function canonicalLineName(lineName) {
 
 function buildStationPickerIndex(stations) {
     if (!window.TransitData || !window.TransitData.buildLineIndex) {
-        throw new Error('TransitData.buildLineIndex is required for station picker');
+        console.error('TransitData.buildLineIndex is required');
+        const stationNames = Object.keys(stations || {});
+        return {
+            stations: stationNames,
+            stationSet: new Set(stationNames),
+            stationMap: stations || {},
+            lines: [],
+            lineMap: new Map()
+        };
     }
     return window.TransitData.buildLineIndex(stations, timetableData, {
         pinyinMap: stationPinyinMap || {}
@@ -60,7 +68,13 @@ function setupStationPickers() {
     ];
 
     const pickers = configs.map((config) =>
-        window.TransitData.createStationPicker(stationPickerIndex, stationData, config)
+        window.TransitData.createStationPicker(stationPickerIndex, stationData, {
+            ...config,
+            openShowsAll: true,
+            clearStationOnLineChange: true,
+            autoSelectFirstStation: false,
+            resolveFuzzy: false
+        })
     );
     window.__queryPickers = { start: pickers[0], end: pickers[1] };
     applyRouteParams();
@@ -93,19 +107,6 @@ function resolvePickerStation(inputId) {
     if (input.dataset.station && stationData[input.dataset.station]) return input.dataset.station;
     if (stationData && stationData[inputValue]) return inputValue;
 
-    if (window.TransitData?.resolveStationName) {
-        const stationName = window.TransitData.resolveStationName(
-            stationPickerIndex,
-            stationData,
-            inputValue,
-            { pinyinMap: stationPickerIndex?.pinyinMap || {} }
-        );
-        if (stationName) {
-            input.value = stationName;
-            input.dataset.station = stationName;
-            return stationName;
-        }
-    }
     return '';
 }
 

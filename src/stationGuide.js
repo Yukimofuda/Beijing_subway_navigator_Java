@@ -287,15 +287,15 @@
     }
 
     function renderDetail() {
-        const stationName = state.selected || state.picker.resolve() || currentStationList()[0];
-        state.selected = stationName;
+        const stationName = state.selected || state.picker.resolve();
         const info = state.stations[stationName];
         clearNode(refs.detail);
 
         if (!info) {
-            refs.detail.appendChild(node('div', '暂无站点数据', 'muted'));
+            refs.detail.appendChild(node('div', stationName ? '未找到该站点，请检查 data/_station.json' : '请选择站点查看导览信息', 'muted'));
             return;
         }
+        state.selected = stationName;
         saveRecentStation(stationName);
 
         const head = document.createElement('div');
@@ -409,16 +409,18 @@
                 input: refs.search,
                 menu: refs.menu,
                 lineSelect: refs.line,
-                lineSummary: refs.lineSummary
+                lineSummary: refs.lineSummary,
+                openShowsAll: true,
+                clearStationOnLineChange: true,
+                autoSelectFirstStation: false
             });
             const requestedStation = new URLSearchParams(window.location.search).get('station');
             state.selected = requestedStation && state.stations[requestedStation]
                 ? requestedStation
-                : state.index.lines[0]?.stations[0] || state.index.stations[0];
+                : null;
             if (state.selected) state.picker.setStation(state.selected);
             refs.line.addEventListener('change', () => {
-                state.selected = currentStationList()[0];
-                if (state.selected) state.picker.setStation(state.selected);
+                state.selected = null;
                 renderList();
                 renderDetail();
             });

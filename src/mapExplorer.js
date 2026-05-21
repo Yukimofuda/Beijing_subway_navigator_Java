@@ -437,7 +437,10 @@
             input: stationSearch,
             menu: stationMenu,
             lineSelect: stationLine,
-            lineSummary: stationLineSummary
+            lineSummary: stationLineSummary,
+            openShowsAll: true,
+            clearStationOnLineChange: true,
+            autoSelectFirstStation: false
         });
         const stationNames = index.lines[0]?.stations.length ? index.lines[0].stations : index.stations;
         const params = new URLSearchParams(window.location.search);
