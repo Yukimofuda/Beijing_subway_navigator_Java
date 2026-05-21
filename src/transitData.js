@@ -121,14 +121,41 @@
         return timetable?.['工作日'] || timetable?.['双休日'] || timetable?.['周末'] || timetable || {};
     }
 
-    function firstScheduleForLine(lineData) {
+    function extractBestStationOrderFromTimetable(lineData) {
+        let best = [];
         for (const direction of Object.keys(lineData || {})) {
             const trains = lineData[direction] || {};
             for (const trainNo of Object.keys(trains)) {
-                if (Array.isArray(trains[trainNo]) && trains[trainNo].length) return trains[trainNo];
+                const schedule = trains[trainNo];
+                if (!Array.isArray(schedule)) continue;
+                const order = orderedUnique(schedule.map((stop) => stop?.[0]).filter(Boolean));
+                if (order.length > best.length) best = order;
             }
         }
-        return [];
+        return best;
+    }
+
+    function orderStationsForLine(stationSet, timetableOrder, stationOrderIndex = new Map()) {
+        const seen = new Set();
+        const ordered = [];
+
+        for (const stationName of timetableOrder || []) {
+            if (stationSet.has(stationName) && !seen.has(stationName)) {
+                ordered.push(stationName);
+                seen.add(stationName);
+            }
+        }
+
+        const rest = Array.from(stationSet)
+            .filter((stationName) => !seen.has(stationName))
+            .sort((a, b) => {
+                const aOrder = stationOrderIndex.has(a) ? stationOrderIndex.get(a) : Number.POSITIVE_INFINITY;
+                const bOrder = stationOrderIndex.has(b) ? stationOrderIndex.get(b) : Number.POSITIVE_INFINITY;
+                if (aOrder !== bOrder) return aOrder - bOrder;
+                return a.localeCompare(b, 'zh-CN');
+            });
+
+        return [...ordered, ...rest];
     }
 
     function buildStationSearchIndex(stations, options = {}) {
@@ -141,41 +168,71 @@
 
     function buildLineIndex(stations, timetable, options = {}) {
         const dayData = getDayData(timetable);
-        const lineMap = new Map();
+        const stationNames = Object.keys(stations || {});
+        const stationSet = new Set(stationNames);
+        const stationOrderIndex = new Map(stationNames.map((stationName, index) => [stationName, index]));
+        const lineBuckets = new Map();
         const pinyinMap = options.pinyinMap || {};
 
-        for (const lineName of Object.keys(dayData || {})) {
-            const label = simplifyLineName(lineName);
-            const scheduleStations = firstScheduleForLine(dayData[lineName]).map((stop) => stop[0]);
-            if (!lineMap.has(label)) lineMap.set(label, { label, fullNames: new Set(), stations: [] });
-            const item = lineMap.get(label);
-            item.fullNames.add(lineName);
-            item.stations = orderedUnique([...item.stations, ...scheduleStations]);
+        function ensureLine(rawLineName) {
+            const label = simplifyLineName(rawLineName);
+            if (!lineBuckets.has(label)) {
+                lineBuckets.set(label, {
+                    label,
+                    fullNames: new Set(),
+                    stations: new Set(),
+                    orderedFromTimetable: []
+                });
+            }
+            const bucket = lineBuckets.get(label);
+            bucket.fullNames.add(rawLineName);
+            return bucket;
         }
 
-        for (const stationName of Object.keys(stations || {})) {
+        for (const stationName of stationNames) {
             for (const rawLine of stations[stationName].lines || []) {
-                const label = simplifyLineName(rawLine);
-                if (!lineMap.has(label)) lineMap.set(label, { label, fullNames: new Set(), stations: [] });
-                const item = lineMap.get(label);
-                item.fullNames.add(rawLine);
-                if (!item.stations.includes(stationName)) item.stations.push(stationName);
+                ensureLine(rawLine).stations.add(stationName);
             }
         }
 
-        const lines = Array.from(lineMap.values())
-            .map((line) => ({
-                label: line.label,
-                fullNames: Array.from(line.fullNames),
-                stations: line.stations.filter((stationName) => stations?.[stationName]),
-                color: lineColor(line.label)
-            }))
+        for (const rawLineName of Object.keys(dayData || {})) {
+            const bucket = ensureLine(rawLineName);
+            const bestOrder = extractBestStationOrderFromTimetable(dayData[rawLineName]);
+            for (const stationName of bestOrder) {
+                if (stationSet.has(stationName)) bucket.stations.add(stationName);
+            }
+            const filteredOrder = bestOrder.filter((stationName) => stationSet.has(stationName));
+            if (filteredOrder.length > bucket.orderedFromTimetable.length) {
+                bucket.orderedFromTimetable = filteredOrder;
+            }
+        }
+
+        const lines = Array.from(lineBuckets.values())
+            .map((bucket) => {
+                const orderedStations = orderStationsForLine(bucket.stations, bucket.orderedFromTimetable, stationOrderIndex);
+                return {
+                    label: bucket.label,
+                    fullNames: Array.from(bucket.fullNames),
+                    stations: orderedStations,
+                    stationSet: new Set(orderedStations),
+                    orderMap: new Map(orderedStations.map((stationName, index) => [stationName, index])),
+                    color: lineColor(bucket.label)
+                };
+            })
             .sort((a, b) => compareLines(a.label, b.label));
+        const lineMap = new Map(lines.map((line) => [line.label, line]));
+        const rawLineMap = new Map();
+        for (const line of lines) {
+            for (const rawLineName of line.fullNames) rawLineMap.set(rawLineName, line);
+        }
 
         return {
-            stations: Object.keys(stations || {}).sort((a, b) => a.localeCompare(b, 'zh-CN')),
+            stations: stationNames.sort((a, b) => a.localeCompare(b, 'zh-CN')),
+            stationSet,
+            stationMap: stations || {},
             lines,
-            lineMap: new Map(lines.map((line) => [line.label, line])),
+            lineMap,
+            rawLineMap,
             pinyinMap,
             stationSearchIndex: buildStationSearchIndex(stations, { pinyinMap })
         };
