@@ -331,6 +331,8 @@
         const lineSelect = config.lineSelect;
         const lineSummary = config.lineSummary;
         if (!input || !menu || !lineSelect) return null;
+        const openShowsAll = config.openShowsAll !== false;
+        const clearStationOnLineChange = config.clearStationOnLineChange !== false;
 
         fillLineSelect(index, lineSelect);
 
@@ -365,10 +367,14 @@
         function showLineStations(lineLabel) {
             setLineMode('select');
             lineSelect.value = lineLabel;
+            if (clearStationOnLineChange) {
+                input.value = '';
+                delete input.dataset.station;
+            }
             const line = index.lineMap.get(lineLabel);
             const stationsOnLine = line?.stations || [];
             menu.innerHTML = stationsOnLine.length
-                ? stationsOnLine.slice(0, 36).map((stationName) => {
+                ? stationsOnLine.map((stationName) => {
                     const lines = stationLines(stations, stationName);
                     return `
                     <button class="combo-option" type="button" data-kind="station" data-value="${stationName}" data-station="${stationName}">
@@ -380,16 +386,17 @@
             menu.classList.add('is-open');
         }
 
-        function renderMenu() {
-            const keyword = input.value.trim();
-            const line = selectedLine();
+        function renderMenu(options = {}) {
+            const showAll = Boolean(options.showAll);
+            const keyword = showAll ? '' : String(options.keyword ?? input.value).trim();
+            const line = options.forceLine || selectedLine();
             const lineCandidates = !line && keyword
-                ? matchLineCandidates(index, keyword, { limit: 8 })
+                ? matchLineCandidates(index, keyword, { limit: options.lineLimit || 8 })
                 : [];
             const stationCandidates = matchStationCandidates(index, stations, keyword, {
                 lineFilter: line,
                 pinyinMap: index.pinyinMap || {},
-                limit: 28
+                limit: showAll ? Infinity : (options.limit || 40)
             });
             const items = [];
 
@@ -414,18 +421,40 @@
             menu.classList.add('is-open');
         }
 
-        input.addEventListener('focus', renderMenu);
+        function openFullMenu() {
+            renderMenu({
+                keyword: '',
+                mode: 'open',
+                showAll: openShowsAll
+            });
+        }
+
+        function searchMenu() {
+            renderMenu({
+                keyword: input.value.trim(),
+                mode: 'search',
+                showAll: false
+            });
+        }
+
+        input.addEventListener('focus', openFullMenu);
+        input.addEventListener('click', openFullMenu);
         input.addEventListener('input', () => {
             delete input.dataset.station;
             setLineMode('select');
-            if (stations[input.value.trim()]) applyStation(input.value.trim());
-            renderMenu();
+            searchMenu();
         });
         lineSelect.addEventListener('change', () => {
-            input.value = '';
-            delete input.dataset.station;
-            renderMenu();
-            menu.classList.remove('is-open');
+            if (clearStationOnLineChange) {
+                input.value = '';
+                delete input.dataset.station;
+            }
+            renderMenu({
+                keyword: '',
+                mode: 'open',
+                showAll: true,
+                forceLine: selectedLine()
+            });
         });
         menu.addEventListener('click', (event) => {
             const option = event.target.closest('.combo-option');
@@ -453,7 +482,8 @@
                 return stations[stationName] ? stationName : '';
             },
             setStation: applyStation,
-            renderMenu
+            renderMenu,
+            openFullMenu
         };
     }
 
