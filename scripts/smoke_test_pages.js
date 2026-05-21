@@ -223,6 +223,8 @@ async function testQueryPage(timetable, stationData) {
   if (!document.getElementById('start-station-menu').innerHTML.includes('西直门')) {
     throw new Error('query station picker did not match pinyin initials');
   }
+  context.__queryPickers.start.setStation('西直门');
+  context.__queryPickers.end.setStation('积水潭');
   context.getRoute();
   const resultHtml = document.getElementById('result').innerHTML;
   if (!resultHtml.includes('乘车方案')) {
