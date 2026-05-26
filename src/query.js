@@ -987,3 +987,13 @@ const mins = minutes % 60; // 计算剩余的分钟数
 // 将小时和分钟格式化为两位数，在前面补0
 return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
 }
+
+if (typeof window !== 'undefined') {
+    window.getRoute = getRoute;
+    window.setTravelRequirement = setTravelRequirement;
+    window.swapRouteEndpoints = swapRouteEndpoints;
+    window.buildGraph = buildGraph;
+    window.timeStringToMinutes = timeStringToMinutes;
+    window.dijkstraShortestPath = dijkstraShortestPath;
+    window.dijkstraLeastTransfers = dijkstraLeastTransfers;
+}
