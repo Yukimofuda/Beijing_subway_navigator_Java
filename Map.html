@@ -149,6 +149,39 @@
             opacity: 1;
         }
 
+        .map-coverage-panel {
+            display: grid;
+            gap: 10px;
+            padding: 12px;
+            border: 1px solid rgba(36, 49, 64, 0.12);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .map-coverage-panel strong {
+            color: var(--text);
+        }
+
+        .map-coverage-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            max-height: 116px;
+            overflow: auto;
+        }
+
+        .map-coverage-chip {
+            border: 1px solid rgba(0, 109, 119, 0.16);
+            border-radius: 999px;
+            background: rgba(0, 109, 119, 0.06);
+            color: var(--brand-strong);
+            padding: 4px 8px;
+            font: inherit;
+            cursor: pointer;
+        }
+
         @media (max-width: 960px) {
             .map-shell {
                 grid-template-columns: 1fr;
@@ -192,6 +225,7 @@
                         </div>
                     </section>
                     <div id="map-station-panel" class="route-path-card muted" style="margin-top:12px;">数据加载中</div>
+                    <div id="map-coverage-panel" class="map-coverage-panel" style="margin-top:12px;">站点识别统计加载中</div>
                 </section>
 
                 <section class="map-side-card">
