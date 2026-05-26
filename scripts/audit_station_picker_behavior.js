@@ -100,6 +100,20 @@ input.dispatchEvent({ type: 'input' });
 const lineCandidates = optionValues(menu.innerHTML, 'line');
 assert(lineCandidates.includes('12号线'), 'typing 12 should show 12号线 line candidate');
 
+input.value = '蓟门';
+input.dispatchEvent({ type: 'input' });
+if (stations['蓟门桥']) {
+  assert(optionValues(menu.innerHTML).includes('蓟门桥'), 'typing 蓟门 should show 蓟门桥');
+} else {
+  console.warn('SKIP: data/_station.json does not contain 蓟门桥, cannot assert 蓟门 match');
+}
+
+input.value = 'xzm';
+input.dispatchEvent({ type: 'input' });
+assert(optionValues(menu.innerHTML).includes('西直门'), 'typing xzm should show 西直门 when pinyin seed exists');
+
+input.value = '12';
+input.dispatchEvent({ type: 'input' });
 menu.listeners.click[0]({ target: createOption('line', '12号线') });
 assert(!input.dataset.station, 'choosing a line must not set dataset.station');
 assert(!stations[input.value], 'choosing a line must not write a station into input.value');
