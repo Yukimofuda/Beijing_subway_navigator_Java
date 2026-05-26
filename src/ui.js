@@ -87,6 +87,17 @@
     image.src = imagePath;
   });
 
+  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  document.querySelectorAll('a[href]').forEach((link) => {
+    const href = link.getAttribute('href') || '';
+    if (!href || href.startsWith('#') || href.startsWith('http')) return;
+    const targetPage = href.split('#')[0].split('?')[0].split('/').pop() || 'index.html';
+    if (targetPage === currentPage) {
+      link.classList.add('is-active');
+      link.setAttribute('aria-current', 'page');
+    }
+  });
+
   // Subtle toast helper for non-intrusive errors
   window.showToast = function showToast(message) {
     const toast = document.createElement('div');
