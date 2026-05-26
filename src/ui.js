@@ -87,6 +87,32 @@
     image.src = imagePath;
   });
 
+  function markActiveNavigation() {
+    const current = window.location.pathname.split('/').pop() || 'index.html';
+    let matched = false;
+    document.querySelectorAll('a[href]').forEach((link) => {
+      const href = link.getAttribute('href') || '';
+      if (!href || href.startsWith('#') || href.startsWith('http')) return;
+      const target = href.split('#')[0].split('?')[0].split('/').pop() || 'index.html';
+      if (target === current || (current === '' && target === 'index.html')) {
+        link.classList.add('is-active');
+        link.setAttribute('aria-current', 'page');
+        matched = true;
+      }
+    });
+    const brandTitle = document.querySelector('.topbar .brand-title');
+    if (brandTitle) {
+      brandTitle.classList.add('is-current-page');
+      if (!matched) brandTitle.setAttribute('aria-current', 'page');
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', markActiveNavigation);
+  } else {
+    markActiveNavigation();
+  }
+
   // Subtle toast helper for non-intrusive errors
   window.showToast = function showToast(message) {
     const toast = document.createElement('div');
