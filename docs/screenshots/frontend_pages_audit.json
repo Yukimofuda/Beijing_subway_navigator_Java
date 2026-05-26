@@ -1,7 +1,6 @@
 {
   "port": null,
   "mode": "file",
-  "generatedAt": "2026-05-26T06:09:12.972Z",
   "rows": [
     {
       "page": "/index.html",
@@ -15,7 +14,7 @@
     {
       "page": "/query.html",
       "status": 200,
-      "textLength": 162,
+      "textLength": 174,
       "buttons": 10,
       "inputs": 6,
       "ok": true,
@@ -24,7 +23,7 @@
     {
       "page": "/Map.html",
       "status": 200,
-      "textLength": 145,
+      "textLength": 155,
       "buttons": 9,
       "inputs": 3,
       "ok": true,

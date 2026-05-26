@@ -165,7 +165,7 @@ async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   fs.writeFileSync(
     path.join(OUTPUT_DIR, 'frontend_pages_audit.json'),
-    JSON.stringify({ port, mode: port ? 'http' : 'file', generatedAt: new Date().toISOString(), rows }, null, 2)
+    JSON.stringify({ port, mode: port ? 'http' : 'file', rows }, null, 2)
   );
 
   console.table(rows);

@@ -139,3 +139,53 @@
 
 #### 建议修改
 - 增加前端页面加载审计脚本，先保证主要容器、按钮、输入框和页面正文存在。
+
+## 3. 本轮可见修复验证
+
+### query.html 初始结果区空状态
+
+- 修复前：打开查询页时 `#result` 区域为空，用户不知道下一步操作。
+- 修复后：`#result` 默认显示“选择起点和终点，开始规划路线”的空状态卡片；查询后仍由原有结果 HTML 覆盖。
+- 涉及文件：query.html、style/styles.css。
+- 浏览器验证结果：通过，页面初始状态可见空状态文案。
+- 截图路径：docs/screenshots/query-empty-state.png。
+
+### query.html 站点选择器打开显示全集
+
+- 修复前：已填入“西直门”后再次打开输入框，容易只看到当前站点相关候选。
+- 修复后：focus/click 打开菜单时显示全集，浏览器验证 `#start-station-menu` 有 404 个站点候选。
+- 涉及文件：src/transitData.js。
+- 浏览器验证结果：通过。
+- 截图路径：docs/screenshots/query-picker-open-all.png。
+
+### query.html 选择线路不自动选站
+
+- 修复前：选择线路后可能自动写入该线路第一个站点。
+- 修复后：选择 10号线后输入框为空、`dataset.station` 为空，菜单显示 45 个 10号线站点。
+- 涉及文件：src/transitData.js。
+- 浏览器验证结果：通过。
+- 截图路径：docs/screenshots/query-line-selected-no-autostation.png。
+
+### fare_calculator.html 按钮位置
+
+- 修复前：票价页按钮曾偏移到页面左侧边界。
+- 修复后：按钮位于卡片内部，`.fare-actions` 左右边界均在 `.tool-panel-body` 内。
+- 涉及文件：fare_calculator.html、style/styles.css。
+- 浏览器验证结果：通过。
+- 截图路径：docs/screenshots/fare-actions-fixed.png。
+
+### station_guide.html 选择器
+
+- 修复前：站点导览候选可能与查询页不一致。
+- 修复后：站点导览页打开已填站点输入框时显示 404 个站点候选，与 `_station.json` 总数一致。
+- 涉及文件：src/stationGuide.js、src/transitData.js。
+- 浏览器验证结果：通过。
+- 截图路径：docs/screenshots/station-guide-picker.png。
+
+### Map.html 站点数据识别
+
+- 修复前：SVG 只有部分英文站点标签可悬浮匹配，无法说明 `_station.json` 里未出现在图面标注的站点如何处理。
+- 修复后：地图页写入 `station-json-registry` SVG 元数据，覆盖 `_station.json` 全部 404 个站点；侧栏显示“站点数据识别 404/404”，并列出未在图面标注但可查询的站点。
+- 涉及文件：Map.html、src/mapExplorer.js、scripts/audit_svg_station_mapping.js。
+- 浏览器验证结果：通过，浏览器 DOM 中 `#subwayMap svg` 的 `data-station-registry-count` 为 404，且存在 `#station-json-registry`。
+- 截图路径：docs/screenshots/map-station-registry.png。

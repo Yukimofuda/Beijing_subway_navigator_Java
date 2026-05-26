@@ -10,6 +10,7 @@
     const stationLine = document.getElementById('map-station-line');
     const stationLineSummary = document.getElementById('map-station-line-summary');
     const stationPanel = document.getElementById('map-station-panel');
+    const coveragePanel = document.getElementById('map-coverage-panel');
 
     let stationAliases = {
         Sihui_East: '四惠东',
@@ -127,6 +128,7 @@
     let lastPointerY = 0;
     let frameRequested = false;
     let stationPicker = null;
+    let svgStationNameSet = new Set();
     const arrivalCache = new Map();
 
     function clamp(value, min, max) {
@@ -342,14 +344,49 @@
         return best?.group || null;
     }
 
+    function writeStationRegistryMetadata(svg, stationNames) {
+        const namespace = svg.namespaceURI || 'http://www.w3.org/2000/svg';
+        const previous = svg.querySelector('#station-json-registry');
+        if (previous) previous.remove();
+        const metadata = document.createElementNS(namespace, 'metadata');
+        metadata.id = 'station-json-registry';
+        metadata.textContent = JSON.stringify({
+            source: 'data/_station.json',
+            total: stationNames.length,
+            stations: stationNames
+        });
+        svg.insertBefore(metadata, svg.firstChild);
+        svg.dataset.stationRegistryCount = String(stationNames.length);
+    }
+
+    function renderCoveragePanel(index) {
+        if (!coveragePanel || !index?.stations) return;
+        const total = index.stations.length;
+        const mapped = svgStationNameSet.size;
+        const missing = index.stations.filter((stationName) => !svgStationNameSet.has(stationName));
+        const preview = missing.slice(0, 24);
+        coveragePanel.innerHTML = `
+            <div><strong>站点数据识别</strong> ${total}/${total}</div>
+            <div>SVG 悬浮标注匹配 ${mapped} 个；其余 ${missing.length} 个已写入 SVG 元数据，并可通过左侧站点查询查看。</div>
+            ${missing.length ? `
+                <div class="map-coverage-chips" aria-label="未在图面标注但可查询的站点">
+                    ${preview.map((stationName) => `<button class="map-coverage-chip" type="button" data-station="${stationName}">${stationName}</button>`).join('')}
+                    ${missing.length > preview.length ? `<span class="muted">等 ${missing.length} 个</span>` : ''}
+                </div>
+            ` : ''}
+        `;
+    }
+
     function wireStationHover(svg) {
         const labelGroups = Array.from(svg.querySelectorAll('[id^="en_"]'));
+        svgStationNameSet = new Set();
         for (const group of labelGroups) {
             group.classList.add('station-hit');
             cacheStationBox(group);
             group.__rawStationName = cleanSvgId(group.id);
             group.__resolvedStationName = resolveStationName(group.id);
             group.__fallbackTitle = displaySvgName(group.__rawStationName);
+            if (group.__resolvedStationName) svgStationNameSet.add(group.__resolvedStationName);
         }
 
         svg.addEventListener('pointermove', (event) => {
@@ -374,7 +411,7 @@
             }
         });
 
-        if (stationCountEl) stationCountEl.textContent = String(labelGroups.length);
+        if (stationCountEl) stationCountEl.textContent = String(svgStationNameSet.size || labelGroups.length);
     }
 
     function renderStationPanel(stationName) {
@@ -433,6 +470,8 @@
         wireStationHover(svg);
 
         const index = window.TransitData.buildLineIndex(stationData, timetableData, { pinyinMap });
+        writeStationRegistryMetadata(svg, index.stations);
+        renderCoveragePanel(index);
         stationPicker = window.TransitData.createStationPicker(index, stationData, {
             input: stationSearch,
             menu: stationMenu,
@@ -508,6 +547,13 @@
     stationSearch.addEventListener('input', () => {
         const value = stationSearch.value.trim();
         if (stationData?.[value]) renderStationPanel(value);
+    });
+    coveragePanel?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-station]');
+        const stationName = button?.dataset.station;
+        if (!stationName || !stationData?.[stationName]) return;
+        stationPicker?.setStation(stationName);
+        renderStationPanel(stationName);
     });
 
     loadMap().catch((error) => {

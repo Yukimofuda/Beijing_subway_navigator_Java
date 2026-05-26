@@ -15,6 +15,7 @@ const svgStationKeys = Array.from(
 ).sort((a, b) => a.localeCompare(b));
 
 const stationNames = new Set(Object.keys(stations));
+const registryCoverage = Object.keys(stations).length;
 const matched = [];
 const unmatched = [];
 const badAliases = [];
@@ -34,6 +35,7 @@ console.log(`SVG station label groups: ${svgStationKeys.length}`);
 console.log(`Matched aliases: ${matched.length}`);
 console.log(`Unmatched aliases: ${unmatched.length}`);
 console.log(`Invalid aliases: ${badAliases.length}`);
+console.log(`Station registry coverage: ${registryCoverage}/${stationNames.size}`);
 
 if (badAliases.length) {
   console.log('\nInvalid alias entries:');
@@ -44,4 +46,8 @@ if (unmatched.length) {
   console.log('\nAdd missing mappings to data/svg_station_aliases.json, for example:');
   unmatched.slice(0, 80).forEach((key) => console.log(`  "${key}": ""`));
   if (unmatched.length > 80) console.log(`  ... and ${unmatched.length - 80} more`);
+}
+
+if (registryCoverage !== stationNames.size) {
+  process.exit(1);
 }
