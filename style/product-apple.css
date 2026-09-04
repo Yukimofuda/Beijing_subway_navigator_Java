@@ -49,13 +49,6 @@ body.product-ui {
   background-color: var(--product-canvas);
 }
 
-body.product-ui::before {
-  background:
-    linear-gradient(112deg, rgba(246, 248, 251, 0.94), rgba(242, 246, 250, 0.82)),
-    radial-gradient(820px 460px at 8% -8%, rgba(6, 116, 232, 0.10), transparent 70%),
-    radial-gradient(720px 520px at 102% 4%, rgba(87, 104, 128, 0.10), transparent 70%);
-}
-
 body.product-ui ::selection {
   color: #fff;
   background: var(--product-blue);
@@ -791,10 +784,6 @@ body.page-query .route-line-block:last-child {
 }
 
 /* Map: one calm inspector and one full-bleed viewport. */
-body.page-map::before {
-  background: linear-gradient(150deg, rgba(242, 246, 250, 0.98), rgba(230, 236, 243, 0.92));
-}
-
 body.page-map .page {
   width: min(1540px, calc(100% - 28px)) !important;
   padding-top: 14px !important;
