@@ -87,30 +87,63 @@
     image.src = imagePath;
   });
 
+  const navigationItems = [
+    ['index.html', '首页'],
+    ['query.html', '路线'],
+    ['Map.html', '线路图'],
+    ['service_board.html', '运行'],
+    ['fare_calculator.html', '票价'],
+    ['station_guide.html', '站点'],
+    ['lines.html', '时刻表'],
+  ];
+
+  const navigationGroups = {
+    'line_details.html': 'lines.html',
+    'trains.html': 'lines.html',
+    'train_details.html': 'lines.html',
+    'timetable.html': 'lines.html',
+    'stations.html': 'station_guide.html',
+  };
+
+  function createSiteNavigation() {
+    const topbar = document.querySelector('.topbar');
+    if (!topbar || topbar.querySelector('.site-nav')) return;
+
+    topbar.classList.add('app-header');
+    Array.from(topbar.children).forEach((child) => {
+      if (!child.classList.contains('brand')) child.classList.add('topbar-actions');
+    });
+
+    const nav = document.createElement('nav');
+    nav.className = 'site-nav';
+    nav.setAttribute('aria-label', '主要功能');
+    nav.innerHTML = navigationItems
+      .map(([href, label]) => `<a class="nav-link" href="${href}">${label}</a>`)
+      .join('');
+    topbar.appendChild(nav);
+  }
+
   function markActiveNavigation() {
     const current = window.location.pathname.split('/').pop() || 'index.html';
-    let matched = false;
-    document.querySelectorAll('a[href]').forEach((link) => {
-      const href = link.getAttribute('href') || '';
-      if (!href || href.startsWith('#') || href.startsWith('http')) return;
-      const target = href.split('#')[0].split('?')[0].split('/').pop() || 'index.html';
-      if (target === current || (current === '' && target === 'index.html')) {
-        link.classList.add('is-active');
-        link.setAttribute('aria-current', 'page');
-        matched = true;
-      }
+    const activeTarget = navigationGroups[current] || current;
+    document.querySelectorAll('.site-nav a[href]').forEach((link) => {
+      const target = (link.getAttribute('href') || '').split('/').pop();
+      const active = target === activeTarget;
+      link.classList.toggle('is-active', active);
+      if (active) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
     });
-    const brandTitle = document.querySelector('.topbar .brand-title');
-    if (brandTitle) {
-      brandTitle.classList.add('is-current-page');
-      if (!matched) brandTitle.setAttribute('aria-current', 'page');
-    }
+  }
+
+  function initializeProductChrome() {
+    createSiteNavigation();
+    markActiveNavigation();
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', markActiveNavigation);
+    document.addEventListener('DOMContentLoaded', initializeProductChrome);
   } else {
-    markActiveNavigation();
+    initializeProductChrome();
   }
 
   // Subtle toast helper for non-intrusive errors

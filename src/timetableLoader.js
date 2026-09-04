@@ -10,6 +10,9 @@
   }
 
   async function loadTimetableData() {
+    if (window.TransitAPI?.loadTimetable) {
+      return window.TransitAPI.loadTimetable();
+    }
     try {
       const parts = await Promise.all(PART_PATHS.map(fetchJson));
       const merged = Object.assign({}, ...parts);

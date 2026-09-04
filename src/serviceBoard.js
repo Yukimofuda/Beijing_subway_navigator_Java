@@ -4,6 +4,7 @@
         stations: null,
         summaries: [],
         selectedLine: null,
+        index: null,
     };
 
     const refs = {
@@ -51,6 +52,8 @@
 
     function getStationsForLine(lineName) {
         const shortName = simplifyLineName(lineName);
+        const indexedStations = state.index?.lineMap?.get(shortName)?.stations;
+        if (indexedStations?.length) return indexedStations;
         const stations = [];
         for (const stationName of Object.keys(state.stations || {})) {
             const lines = state.stations[stationName].lines || [];
@@ -58,7 +61,7 @@
                 stations.push(stationName);
             }
         }
-        return stations.sort((a, b) => a.localeCompare(b, 'zh-CN'));
+        return stations;
     }
 
     function summarizeLine(lineName, lineData) {
@@ -143,7 +146,9 @@
         const dayData = state.timetable[dayKey] || state.timetable['双休日'] || state.timetable['工作日'] || {};
         state.summaries = Object.keys(dayData)
             .map((lineName) => summarizeLine(lineName, dayData[lineName]))
-            .sort((a, b) => simplifyLineName(a.lineName).localeCompare(simplifyLineName(b.lineName), 'zh-CN'));
+            .sort((a, b) => window.TransitData?.compareLines
+                ? window.TransitData.compareLines(a.lineName, b.lineName)
+                : simplifyLineName(a.lineName).localeCompare(simplifyLineName(b.lineName), 'zh-CN'));
         if (!state.selectedLine && state.summaries.length) state.selectedLine = state.summaries[0].lineName;
     }
 
@@ -322,13 +327,20 @@
 
     async function init() {
         try {
-            const [timetable, stationResponse] = await Promise.all([
+            const [timetable, stations] = await Promise.all([
                 loadTimetableData(),
-                fetch('data/_station.json'),
+                window.TransitAPI?.loadStations
+                    ? window.TransitAPI.loadStations()
+                    : fetch('data/_station.json').then((response) => {
+                        if (!response.ok) throw new Error(`station data ${response.status}`);
+                        return response.json();
+                    }),
             ]);
-            if (!stationResponse.ok) throw new Error(`station data ${stationResponse.status}`);
             state.timetable = timetable;
-            state.stations = await stationResponse.json();
+            state.stations = stations;
+            state.index = window.TransitData?.buildLineIndex
+                ? window.TransitData.buildLineIndex(stations, timetable)
+                : null;
             refs.search.addEventListener('input', renderLineList);
             refs.day.addEventListener('change', () => {
                 state.selectedLine = null;

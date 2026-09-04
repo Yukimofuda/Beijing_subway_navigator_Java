@@ -187,7 +187,7 @@
                 <div class="brand-title">站点导览</div>
                 <div class="brand-subtitle">换乘 · 相邻站 · 首末班</div>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
+            <div class="topbar-actions">
                 <a class="btn btn-ghost" href="fare_calculator.html">票价测算</a>
                 <a class="btn btn-ghost" href="index.html">返回首页</a>
             </div>
@@ -211,7 +211,7 @@
                         </div>
                     </section>
                     <div class="recent-card">
-                        <div class="label">最近查看</div>
+                        <div class="section-heading-inline"><div class="label">最近查看</div><span id="station-guide-count" class="status-chip">-- 个站点</span></div>
                         <div class="line-badges" id="station-guide-recent"></div>
                     </div>
                     <div class="guide-list" id="station-guide-list"></div>
@@ -227,6 +227,7 @@
     </div>
 
     <script defer src="src/ui.js"></script>
+    <script defer src="src/transitApi.js"></script>
     <script defer src="src/timetableLoader.js"></script>
     <script defer src="src/transitData.js"></script>
     <script defer src="src/stationGuide.js"></script>

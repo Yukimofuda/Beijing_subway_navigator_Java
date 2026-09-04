@@ -13,7 +13,7 @@
                 <div class="brand-title">线路查询</div>
                 <div class="brand-subtitle">支持最短时间 / 最少换乘</div>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
+            <div class="topbar-actions">
                 <div class="pill">当前时间：<span id="current-time">--:--</span></div>
                 <div class="pill" id="data-status">数据加载中</div>
                 <a class="btn btn-ghost" href="index.html">返回首页</a>
@@ -22,8 +22,11 @@
 
         <div class="card">
             <div class="card-body">
-                <h1 class="title">地铁路线查询</h1>
-                <p class="subtitle">输入站点名称后，选择偏好并查询。</p>
+                <div class="page-heading">
+                    <span class="section-kicker">行程规划</span>
+                    <h1 class="title">选择起终点</h1>
+                    <p class="subtitle">可先选线路缩小范围，也可直接输入中文站名或拼音首字母。</p>
+                </div>
 
                 <div class="journey-planner" style="margin-top:18px;">
                     <section class="journey-card station-picker" data-picker="start">
@@ -66,9 +69,9 @@
 
                 <div id="result" style="margin-top:16px;">
                     <div class="empty-state route-empty-state">
-                        <div class="empty-state-icon">🚇</div>
+                        <div class="empty-state-mark" aria-hidden="true"></div>
                         <h2>选择起点和终点，开始规划路线</h2>
-                        <p>支持最短时间和最少换乘两种查询方式。查询后会显示线路颜色、换乘站和沿途站点。</p>
+                        <p>查询结果将显示预计到达、票价、换乘与完整沿途站点。</p>
                     </div>
                 </div>
             </div>
@@ -76,6 +79,7 @@
     </div>
 
     <script defer src="src/ui.js"></script>
+    <script defer src="src/transitApi.js"></script>
     <script defer src="src/timetableLoader.js"></script>
     <script defer src="src/transitData.js"></script>
     <script defer src="src/query.js"></script>

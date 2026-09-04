@@ -19,10 +19,12 @@ function isSameLine(currentLine, targetLine) {
 loadTimetableData()
   .then(data => {
     const trainsDiv = document.getElementById('trains');
-    let trainsHTML = '';
-    const trains = new Set();  // 用 Set 来确保车次不重复
+    const searchInput = document.getElementById('train-search');
+    const countElement = document.getElementById('train-count');
+    const moreButton = document.getElementById('train-more');
+    const records = new Map();
+    let visibleLimit = 80;
 
-    // 遍历 timetable.json 中的所有日期类型（如：工作日、周末等）
     for (const dayType in data) {
       if (data.hasOwnProperty(dayType)) {
         for (const currentLine in data[dayType]) {
@@ -32,7 +34,20 @@ loadTimetableData()
                 if (data[dayType][currentLine].hasOwnProperty(direction)) {
                   for (const train in data[dayType][currentLine][direction]) {
                     if (data[dayType][currentLine][direction].hasOwnProperty(train)) {
-                      trains.add(train); // 将车次添加到 Set 中，去重
+                      const schedule = data[dayType][currentLine][direction][train];
+                      if (!Array.isArray(schedule) || !schedule.length) continue;
+                      const record = records.get(train) || {
+                        train,
+                        directions: new Set(),
+                        dayTypes: new Set(),
+                        firstStation: schedule[0]?.[0] || '',
+                        terminalStation: schedule[schedule.length - 1]?.[0] || '',
+                        departureTime: schedule[0]?.[1] || '',
+                        arrivalTime: schedule[schedule.length - 1]?.[1] || ''
+                      };
+                      record.directions.add(direction);
+                      record.dayTypes.add(dayType);
+                      records.set(train, record);
                     }
                   }
                 }
@@ -43,15 +58,63 @@ loadTimetableData()
       }
     }
 
-    // 遍历所有车次，生成按钮
-    trains.forEach(train => {
-      trainsHTML += `<button class="train-button" onclick="showStationDetails('${selectedLine}', '${train}')">${train}</button>`;
-    });
+    const allRecords = Array.from(records.values()).sort((a, b) => a.train.localeCompare(b.train, 'zh-CN', { numeric: true }));
 
-    // 将生成的车次按钮插入到页面中
-    trainsDiv.innerHTML = trainsHTML || '<div class="muted">未找到该线路车次</div>';
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderTrains() {
+      const keyword = String(searchInput?.value || '').trim().toLowerCase();
+      const filtered = keyword
+        ? allRecords.filter((record) => [
+            record.train,
+            record.firstStation,
+            record.terminalStation,
+            ...record.directions
+          ].some((value) => String(value).toLowerCase().includes(keyword)))
+        : allRecords;
+      const visible = filtered.slice(0, visibleLimit);
+
+      trainsDiv.innerHTML = visible.map((record) => {
+        const direction = Array.from(record.directions)[0] || '';
+        const dayText = record.dayTypes.size > 1 ? '工作日 / 双休日' : Array.from(record.dayTypes)[0] || '';
+        return `
+          <button class="train-button train-service-card" type="button" onclick="showStationDetails('${escapeHtml(selectedLine)}', '${escapeHtml(record.train)}')">
+            <span class="train-service-head">
+              <strong>${escapeHtml(record.train)}</strong>
+              <span>${escapeHtml(record.departureTime)}</span>
+            </span>
+            <span class="train-service-route">${escapeHtml(record.firstStation)} → ${escapeHtml(record.terminalStation)}</span>
+            <small>${escapeHtml(direction)} · ${escapeHtml(dayText)}</small>
+          </button>
+        `;
+      }).join('') || '<div class="empty-state compact-empty">没有匹配车次</div>';
+
+      if (countElement) countElement.textContent = `显示 ${visible.length} / ${filtered.length} 个车次`;
+      if (moreButton) moreButton.hidden = visible.length >= filtered.length;
+    }
+
+    searchInput?.addEventListener('input', () => {
+      visibleLimit = 80;
+      renderTrains();
+    });
+    moreButton?.addEventListener('click', () => {
+      visibleLimit += 80;
+      renderTrains();
+    });
+    renderTrains();
   })
-  .catch(error => console.error('Error:', error));
+  .catch(error => {
+    console.error('Error:', error);
+    const trainsDiv = document.getElementById('trains');
+    if (trainsDiv) trainsDiv.innerHTML = '<div class="result-state is-error"><strong>车次数据加载失败</strong><span>请确认本地服务和时刻表文件可用。</span></div>';
+  });
 
 // 点击车次按钮后跳转到车次详细页面
 function showStationDetails(line, train) {

@@ -86,7 +86,7 @@
                 <div class="brand-title">票价与距离测算</div>
                 <div class="brand-subtitle">站点选择 · 路径距离 · 票价估算</div>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
+            <div class="topbar-actions">
                 <a class="btn btn-ghost" href="query.html">线路查询</a>
                 <a class="btn btn-ghost" href="index.html">返回首页</a>
             </div>
@@ -149,13 +149,20 @@
 
             <section class="tool-panel">
                 <div class="tool-panel-body">
-                    <div id="fare-output" class="muted">请选择出发站和目的站</div>
+                    <div id="fare-output">
+                        <section class="empty-state compact-empty-state">
+                            <div class="empty-state-mark" aria-hidden="true"></div>
+                            <h2>选择两个站点测算</h2>
+                            <p>结果会同时给出估算票价、路径距离、换乘次数和推荐路径。</p>
+                        </section>
+                    </div>
                 </div>
             </section>
         </div>
     </div>
 
     <script defer src="src/ui.js"></script>
+    <script defer src="src/transitApi.js"></script>
     <script defer src="src/timetableLoader.js"></script>
     <script defer src="src/transitData.js"></script>
     <script defer src="src/fareCalculator.js"></script>

@@ -334,8 +334,13 @@
         const openShowsAll = config.openShowsAll !== false;
         const clearStationOnLineChange = config.clearStationOnLineChange !== false;
         const resolveFuzzy = config.resolveFuzzy !== false;
+        let activeOptionIndex = -1;
 
         fillLineSelect(index, lineSelect);
+        input.setAttribute?.('role', 'combobox');
+        input.setAttribute?.('aria-autocomplete', 'list');
+        input.setAttribute?.('aria-expanded', 'false');
+        if (menu.id) input.setAttribute?.('aria-controls', menu.id);
 
         function selectedLine() {
             return lineSelect.hidden ? '' : lineSelect.value;
@@ -366,14 +371,18 @@
         }
 
         function showLineStations(lineLabel) {
-            setLineMode('select');
-            lineSelect.value = lineLabel;
             if (clearStationOnLineChange) {
                 input.value = '';
                 delete input.dataset.station;
             }
             const line = index.lineMap.get(lineLabel);
             const stationsOnLine = line?.stations || [];
+            if (line) {
+                setLineMode('select');
+                lineSelect.value = lineLabel;
+            } else {
+                setLineMode('summary', `${lineLabel} · 暂无站点数据`);
+            }
             menu.innerHTML = stationsOnLine.length
                 ? stationsOnLine.map((stationName) => {
                     const lines = stationLines(stations, stationName);
@@ -385,6 +394,8 @@
                 }).join('')
                 : '<div class="combo-option muted">该线路暂无站点数据</div>';
             menu.classList.add('is-open');
+            input.setAttribute?.('aria-expanded', 'true');
+            activeOptionIndex = -1;
         }
 
         function renderMenu(options = {}) {
@@ -420,6 +431,8 @@
 
             menu.innerHTML = items.join('') || '<div class="combo-option muted">没有匹配站点</div>';
             menu.classList.add('is-open');
+            input.setAttribute?.('aria-expanded', 'true');
+            activeOptionIndex = -1;
         }
 
         function openFullMenu() {
@@ -445,6 +458,30 @@
             setLineMode('select');
             searchMenu();
         });
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                menu.classList.remove('is-open');
+                input.setAttribute?.('aria-expanded', 'false');
+                return;
+            }
+            if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) return;
+            if (!menu.classList.contains('is-open') && event.key !== 'Enter') openFullMenu();
+            const options = Array.from(menu.querySelectorAll?.('.combo-option[data-kind]') || []);
+            if (!options.length) return;
+            if (event.key === 'Enter') {
+                if (activeOptionIndex >= 0) {
+                    event.preventDefault();
+                    options[activeOptionIndex]?.click();
+                }
+                return;
+            }
+            event.preventDefault();
+            activeOptionIndex = event.key === 'ArrowDown'
+                ? (activeOptionIndex + 1) % options.length
+                : (activeOptionIndex - 1 + options.length) % options.length;
+            options.forEach((option, index) => option.classList.toggle('is-active', index === activeOptionIndex));
+            options[activeOptionIndex]?.scrollIntoView?.({ block: 'nearest' });
+        });
         lineSelect.addEventListener('change', () => {
             if (clearStationOnLineChange) {
                 input.value = '';
@@ -468,11 +505,13 @@
             if (!stationName) return;
             applyStation(stationName);
             menu.classList.remove('is-open');
+            input.setAttribute?.('aria-expanded', 'false');
             input.dispatchEvent(new CustomEvent('stationchange', { detail: { station: stationName } }));
         });
         document.addEventListener('click', (event) => {
             if (input.contains(event.target) || menu.contains(event.target)) return;
             menu.classList.remove('is-open');
+            input.setAttribute?.('aria-expanded', 'false');
         });
         return {
             resolve() {

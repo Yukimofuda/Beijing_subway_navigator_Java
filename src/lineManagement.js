@@ -10,16 +10,41 @@ document.addEventListener('DOMContentLoaded', () => {
     manageButton.type = 'button';
     manageButton.className = 'btn btn-ghost';
     manageButton.textContent = '增删线路';
-    manageButton.addEventListener('click', openLineManagementPanel);
+    let canWriteData = true;
+    manageButton.addEventListener('click', () => {
+        if (!canWriteData) {
+            resultDiv.innerHTML = `
+                <section class="result-state is-warning">
+                    <strong>公共站点为只读模式</strong>
+                    <span>线路管理会改写本地 JSON。请在本机运行 npm start 后使用此功能。</span>
+                </section>
+            `;
+            return;
+        }
+        openLineManagementPanel();
+    });
     controlGrid.appendChild(manageButton);
+
+    if (window.TransitAPI?.getCapabilities) {
+        window.TransitAPI.getCapabilities().then((status) => {
+            canWriteData = status.capabilities?.write !== false;
+            if (!canWriteData) manageButton.textContent = '数据管理（本地）';
+        }).catch(() => {
+            canWriteData = false;
+            manageButton.textContent = '数据管理（本地）';
+        });
+    }
 
     let stationGraph = null;
 
     async function ensureStationGraphLoaded() {
         if (stationGraph) return stationGraph;
-        const response = await fetch('data/_station.json');
-        if (!response.ok) throw new Error(`加载站点数据失败: HTTP ${response.status}`);
-        stationGraph = await response.json();
+        stationGraph = window.TransitAPI?.loadStations
+            ? await window.TransitAPI.loadStations()
+            : await fetch('data/_station.json').then((response) => {
+                if (!response.ok) throw new Error(`加载站点数据失败: HTTP ${response.status}`);
+                return response.json();
+            });
         return stationGraph;
     }
 
@@ -191,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
             };
 
-            await Promise.all([
+            const responses = await Promise.all([
                 fetch('/saveStationData', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -203,6 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(timetablePatch),
                 }),
             ]);
+            if (responses.some((response) => !response.ok)) throw new Error('服务端拒绝保存线路数据');
+            window.TransitAPI?.clearCache?.();
 
             if (window.showToast) window.showToast('新增线路已保存');
         } catch (error) {
@@ -244,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            await Promise.all([
+            const responses = await Promise.all([
                 fetch('/saveStationData', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -256,6 +283,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ lineName, stations: toDelete }),
                 }),
             ]);
+            if (responses.some((response) => !response.ok)) throw new Error('服务端拒绝保存删除操作');
+            window.TransitAPI?.clearCache?.();
 
             if (window.showToast) window.showToast('删除站点已保存');
         } catch (error) {

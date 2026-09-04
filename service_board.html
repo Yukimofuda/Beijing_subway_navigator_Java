@@ -176,7 +176,8 @@
                 <div class="brand-title">线路运行看板</div>
                 <div class="brand-subtitle">线路状态 · 首末班 · 下一班</div>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
+            <div class="topbar-actions">
+                <span class="status-chip">本地时刻表</span>
                 <a class="btn btn-ghost" href="query.html">线路查询</a>
                 <a class="btn btn-ghost" href="index.html">返回首页</a>
             </div>
@@ -207,7 +208,7 @@
                         </div>
                         <div class="metric">
                             <div class="metric-value" id="metric-stations">-</div>
-                            <div class="metric-label">站点</div>
+                            <div class="metric-label">时刻站点</div>
                         </div>
                     </div>
                     <div class="line-list" id="board-lines"></div>
@@ -223,7 +224,9 @@
     </div>
 
     <script defer src="src/ui.js"></script>
+    <script defer src="src/transitApi.js"></script>
     <script defer src="src/timetableLoader.js"></script>
+    <script defer src="src/transitData.js"></script>
     <script defer src="src/serviceBoard.js"></script>
 </body>
 </html>

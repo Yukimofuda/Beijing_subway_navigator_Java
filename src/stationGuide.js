@@ -7,6 +7,7 @@
         list: document.getElementById('station-guide-list'),
         detail: document.getElementById('station-guide-detail'),
         recent: document.getElementById('station-guide-recent'),
+        count: document.getElementById('station-guide-count'),
     };
 
     const state = {
@@ -213,7 +214,7 @@
         header.className = 'source-panel-head';
         const titleWrap = document.createElement('div');
         titleWrap.appendChild(node('h2', '站内导览与周边', 'section-title'));
-        titleWrap.appendChild(node('p', detail ? '以下内容来自已核验公开页面，未确定信息保留来源入口。' : '本地尚未收录该站的核验详情，可直接打开官方站点及周边信息继续查询。', 'muted'));
+        titleWrap.appendChild(node('p', detail ? '已收录的站内设施与周边信息' : '当前本地数据尚未收录该站的核验详情', 'muted'));
         header.appendChild(titleWrap);
         header.appendChild(createLink('打开官方查询', detail?.officialLookupUrl || 'https://www.bjsubway.com/station/xltcx/'));
         section.appendChild(header);
@@ -236,10 +237,10 @@
         const facts = document.createElement('div');
         facts.className = 'station-fact-grid';
         [
-            [detail?.knownExits?.length ? detail.knownExits.join(' / ') : '以官方页面为准', detail?.knownExits?.length ? '已核验出入口' : '出入口信息'],
-            [detail?.exitCountText || '未写入未核验出口数', '出口数说明'],
-            [detail?.nearby?.join(' / ') || '待补充', '周边地点'],
-            [detail?.services?.join(' / ') || '待补充', '站内服务']
+            [detail?.knownExits?.length ? detail.knownExits.join(' / ') : '暂无核验数据', '出入口'],
+            [detail?.exitCountText || '暂无核验数据', '出口数量'],
+            [detail?.nearby?.join(' / ') || '暂无核验数据', '周边地点'],
+            [detail?.services?.join(' / ') || '暂无核验数据', '站内服务']
         ].forEach(([value, label]) => {
             const tile = document.createElement('div');
             tile.className = 'station-tile';
@@ -328,16 +329,17 @@
         const grid = document.createElement('div');
         grid.className = 'station-grid';
         [
-            [firstLast.first ? firstLast.first.time : '-', '最早到发'],
-            [firstLast.last ? firstLast.last.time : '-', '最晚到发'],
+            [firstLast.first ? firstLast.first.time : '暂无时刻数据', '最早到发'],
+            [firstLast.last ? firstLast.last.time : '暂无时刻数据', '最晚到发'],
             [String(firstLast.count), '匹配班次'],
-            [`${Math.max(1, (info.lines || []).length + 1)}处`, '出入口估算'],
-            [Array.from(new Set(adjacency.flatMap((item) => [item.previous, item.next]).filter(Boolean))).slice(0, 4).join(' / ') || '-', '相邻站'],
-            ['商业、学校、公园等以实际站外信息为准', '周边提示']
+            [state.details?.[stationName]?.exitCountText || '暂无核验数据', '出口数量'],
+            [Array.from(new Set(adjacency.flatMap((item) => [item.previous, item.next]).filter(Boolean))).slice(0, 4).join(' / ') || '暂无相邻站数据', '相邻站'],
+            [state.details?.[stationName]?.nearby?.join(' / ') || '暂无核验数据', '周边地点']
         ].forEach(([value, label]) => {
             const tile = document.createElement('div');
             tile.className = 'station-tile';
-            tile.appendChild(node('div', value, 'metric-value'));
+            const valueClass = String(value).length > 10 ? 'metric-value compact' : 'metric-value';
+            tile.appendChild(node('div', value, valueClass));
             tile.appendChild(node('div', label, 'metric-label'));
             grid.appendChild(tile);
         });
@@ -388,23 +390,32 @@
             });
             adjacencyWrap.appendChild(card);
         });
+        if (!adjacency.length) adjacencyWrap.appendChild(node('div', '暂无相邻站数据。', 'result-state'));
         refs.detail.appendChild(adjacencyWrap);
     }
 
     async function init() {
         try {
-            const [stationResponse, timetable, detailsResponse, pinyinResponse] = await Promise.all([
-                fetch('data/_station.json'),
+            const [stations, timetable, details, pinyinMap] = await Promise.all([
+                window.TransitAPI?.loadStations
+                    ? window.TransitAPI.loadStations()
+                    : fetch('data/_station.json').then((response) => {
+                        if (!response.ok) throw new Error(`station data ${response.status}`);
+                        return response.json();
+                    }),
                 loadTimetableData(),
-                fetch('data/station_details.json').catch(() => null),
-                fetch('data/station_pinyin.json').catch(() => null)
+                window.TransitAPI?.loadStationDetails
+                    ? window.TransitAPI.loadStationDetails()
+                    : fetch('data/station_details.json').then((response) => response.ok ? response.json() : {}).catch(() => ({})),
+                window.TransitAPI?.loadPinyin
+                    ? window.TransitAPI.loadPinyin()
+                    : fetch('data/station_pinyin.json').then((response) => response.ok ? response.json() : {}).catch(() => ({}))
             ]);
-            if (!stationResponse.ok) throw new Error(`station data ${stationResponse.status}`);
-            state.stations = await stationResponse.json();
+            state.stations = stations;
             state.timetable = timetable;
-            state.details = detailsResponse?.ok ? await detailsResponse.json() : {};
-            const pinyinMap = pinyinResponse?.ok ? await pinyinResponse.json() : {};
+            state.details = details;
             state.index = window.TransitData.buildLineIndex(state.stations, timetable, { pinyinMap });
+            if (refs.count) refs.count.textContent = `${state.index.stations.length} 个站点`;
             state.picker = window.TransitData.createStationPicker(state.index, state.stations, {
                 input: refs.search,
                 menu: refs.menu,
@@ -442,7 +453,7 @@
             renderDetail();
         } catch (error) {
             console.error(error);
-            refs.detail.textContent = '数据加载失败';
+            refs.detail.innerHTML = '<section class="result-state is-error"><strong>站点数据加载失败</strong><span>请检查本地服务和 data 目录。</span></section>';
         }
     }
 

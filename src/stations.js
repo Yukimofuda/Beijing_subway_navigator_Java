@@ -80,10 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     Promise.all([
-        fetch('data/_station.json').then((response) => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.json();
-        }),
+        window.TransitAPI?.loadStations
+            ? window.TransitAPI.loadStations()
+            : fetch('data/_station.json').then((response) => {
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return response.json();
+            }),
         window.loadTimetableData ? window.loadTimetableData() : Promise.resolve({}),
     ])
         .then(([stationData, timetable]) => {

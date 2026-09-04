@@ -22,13 +22,23 @@
     <div class="card">
       <div class="card-body">
         <h1 class="title">请选择车次</h1>
-        <p class="subtitle">下方展示该线路所有可选车次（工作日/双休日合并去重）。</p>
-        <div id="trains" class="list" style="margin-top:16px;"></div>
+        <p class="subtitle">工作日与双休日数据合并去重，可按车次、方向或起讫站筛选。</p>
+        <div class="list-toolbar train-list-toolbar">
+          <label class="field" for="train-search">
+            <span class="label">筛选车次</span>
+            <input class="input" id="train-search" type="search" placeholder="输入车次号、方向或站点">
+          </label>
+          <span class="status-chip" id="train-count">数据加载中</span>
+        </div>
+        <div id="trains" class="train-catalog-grid" style="margin-top:16px;"></div>
+        <button class="btn btn-ghost train-more" id="train-more" type="button" hidden>显示更多车次</button>
       </div>
     </div>
   </div>
 
   <script defer src="src/ui.js"></script>
+  <script defer src="src/transitApi.js"></script>
+  <script defer src="src/transitData.js"></script>
   <script defer src="src/timetableLoader.js"></script>
   <script defer src="src/trains.js"></script>
 </body>

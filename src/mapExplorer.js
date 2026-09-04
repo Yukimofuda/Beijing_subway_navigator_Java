@@ -364,16 +364,20 @@
         const total = index.stations.length;
         const mapped = svgStationNameSet.size;
         const missing = index.stations.filter((stationName) => !svgStationNameSet.has(stationName));
-        const preview = missing.slice(0, 24);
+        const preview = missing.slice(0, 80);
         coveragePanel.innerHTML = `
-            <div><strong>站点数据识别</strong> ${total}/${total}</div>
-            <div>SVG 悬浮标注匹配 ${mapped} 个；其余 ${missing.length} 个已写入 SVG 元数据，并可通过左侧站点查询查看。</div>
-            ${missing.length ? `
+            <div class="coverage-metrics">
+                <span><strong>${total}</strong> 数据可查询</span>
+                <span><strong>${mapped}</strong> 图面可交互</span>
+            </div>
+            <details${missing.length ? '' : ' hidden'}>
+                <summary>${missing.length} 个站点未在当前 SVG 中找到可交互标注</summary>
+                <p>这些站点仍可通过站点查询、路线规划和站点导览访问；未使用虚构坐标将其放入图面。</p>
                 <div class="map-coverage-chips" aria-label="未在图面标注但可查询的站点">
                     ${preview.map((stationName) => `<button class="map-coverage-chip" type="button" data-station="${stationName}">${stationName}</button>`).join('')}
-                    ${missing.length > preview.length ? `<span class="muted">等 ${missing.length} 个</span>` : ''}
+                    ${missing.length > preview.length ? `<span class="muted">另有 ${missing.length - preview.length} 个</span>` : ''}
                 </div>
-            ` : ''}
+            </details>
         `;
     }
 
@@ -406,7 +410,7 @@
             const group = pickStationGroup(svg, labelGroups, event) || activeHovered;
             const resolvedName = group?.__resolvedStationName;
             if (resolvedName && stationSearch) {
-                stationSearch.value = resolvedName;
+                stationPicker?.setStation(resolvedName);
                 renderStationPanel(resolvedName);
             }
         });
@@ -421,7 +425,14 @@
             return;
         }
         stationPanel.classList.remove('muted');
-        stationPanel.innerHTML = renderArrivalHtml(stationName, stationName);
+        stationPanel.innerHTML = `
+            ${renderArrivalHtml(stationName, stationName)}
+            <div class="map-station-actions">
+                <a class="text-link" href="query.html?start=${encodeURIComponent(stationName)}">设为起点</a>
+                <a class="text-link" href="query.html?end=${encodeURIComponent(stationName)}">设为终点</a>
+                <a class="text-link" href="station_guide.html?station=${encodeURIComponent(stationName)}">站点导览</a>
+            </div>
+        `;
     }
 
     async function loadAliasOverrides() {
@@ -435,6 +446,7 @@
     }
 
     async function loadStationPinyin() {
+        if (window.TransitAPI?.loadPinyin) return window.TransitAPI.loadPinyin();
         try {
             const response = await fetch('data/station_pinyin.json');
             if (!response.ok) return {};
@@ -451,10 +463,12 @@
                 return response.text();
             }),
             window.loadTimetableData(),
-            fetch('data/_station.json').then((response) => {
-                if (!response.ok) throw new Error('站点数据加载失败');
-                return response.json();
-            }),
+            window.TransitAPI?.loadStations
+                ? window.TransitAPI.loadStations()
+                : fetch('data/_station.json').then((response) => {
+                    if (!response.ok) throw new Error('站点数据加载失败');
+                    return response.json();
+                }),
             loadAliasOverrides(),
             loadStationPinyin()
         ]);
@@ -481,14 +495,13 @@
             clearStationOnLineChange: true,
             autoSelectFirstStation: false
         });
-        const stationNames = index.lines[0]?.stations.length ? index.lines[0].stations : index.stations;
         const params = new URLSearchParams(window.location.search);
         const requestedStation = params.get('station');
         if (requestedStation && stationData[requestedStation]) {
             stationPicker.setStation(requestedStation);
             renderStationPanel(requestedStation);
         } else {
-            renderStationPanel(stationNames[0]);
+            stationPanel.innerHTML = '<div class="map-panel-empty"><strong>查找站点</strong><span>搜索中文站名、线路号或拼音首字母；也可直接悬浮图面站点。</span></div>';
         }
     }
 

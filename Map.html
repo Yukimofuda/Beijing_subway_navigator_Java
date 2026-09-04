@@ -201,7 +201,7 @@
                 <div class="brand-title">北京地铁线路图</div>
                 <div class="brand-subtitle">大图浏览 · 站点悬浮 · 下一班车查询</div>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
+            <div class="topbar-actions">
                 <a class="btn btn-ghost" href="query.html">线路查询</a>
                 <a class="btn btn-ghost" href="index.html">返回首页</a>
             </div>
@@ -209,7 +209,7 @@
 
         <main class="map-shell">
             <aside class="map-side">
-                <section class="map-side-card">
+                <section class="map-side-card map-search-card">
                     <section class="journey-card station-picker" style="grid-template-columns:1fr;">
                         <div class="field line-field">
                             <div class="label">线路</div>
@@ -224,18 +224,21 @@
                             </div>
                         </div>
                     </section>
-                    <div id="map-station-panel" class="route-path-card muted" style="margin-top:12px;">数据加载中</div>
+                </section>
+
+                <section class="map-side-card map-info-card">
+                    <div id="map-station-panel" class="route-path-card muted">站点与时刻表加载中</div>
                     <div id="map-coverage-panel" class="map-coverage-panel" style="margin-top:12px;">站点识别统计加载中</div>
                 </section>
 
-                <section class="map-side-card">
+                <section class="map-side-card map-control-card">
                     <div class="pill">浏览控制</div>
                     <div class="grid">
                         <button class="btn btn-primary" type="button" id="zoomInBtn">放大</button>
                         <button class="btn btn-primary" type="button" id="zoomOutBtn">缩小</button>
                         <button class="btn btn-ghost" type="button" id="resetBtn">重置</button>
                     </div>
-                    <p class="subtitle">触控板双指平移、按住 Ctrl/⌘ 滚动缩放、双击放大；按住 Shift  可临时拖动画布。</p>
+                    <p class="subtitle">触控板双指平移；Ctrl/⌘ + 滚动或双击缩放；Shift + 拖动可移动画布。</p>
                 </section>
             </aside>
 
@@ -262,6 +265,7 @@
     <div class="map-tooltip" id="map-tooltip"></div>
 
     <script defer src="src/ui.js"></script>
+    <script defer src="src/transitApi.js"></script>
     <script defer src="src/timetableLoader.js"></script>
     <script defer src="src/transitData.js"></script>
     <script defer src="src/mapExplorer.js"></script>

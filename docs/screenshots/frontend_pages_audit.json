@@ -5,16 +5,16 @@
     {
       "page": "/index.html",
       "status": 200,
-      "textLength": 277,
-      "buttons": 9,
-      "inputs": 0,
+      "textLength": 319,
+      "buttons": 6,
+      "inputs": 6,
       "ok": true,
       "missing": ""
     },
     {
       "page": "/query.html",
       "status": 200,
-      "textLength": 174,
+      "textLength": 173,
       "buttons": 10,
       "inputs": 6,
       "ok": true,
@@ -32,7 +32,7 @@
     {
       "page": "/fare_calculator.html",
       "status": 200,
-      "textLength": 105,
+      "textLength": 131,
       "buttons": 6,
       "inputs": 8,
       "ok": true,
@@ -41,7 +41,7 @@
     {
       "page": "/station_guide.html",
       "status": 200,
-      "textLength": 49,
+      "textLength": 56,
       "buttons": 2,
       "inputs": 3,
       "ok": true,
@@ -50,7 +50,7 @@
     {
       "page": "/service_board.html",
       "status": 200,
-      "textLength": 79,
+      "textLength": 87,
       "buttons": 2,
       "inputs": 2,
       "ok": true,
@@ -77,9 +77,9 @@
     {
       "page": "/trains.html",
       "status": 200,
-      "textLength": 63,
-      "buttons": 2,
-      "inputs": 0,
+      "textLength": 82,
+      "buttons": 4,
+      "inputs": 1,
       "ok": true,
       "missing": ""
     },

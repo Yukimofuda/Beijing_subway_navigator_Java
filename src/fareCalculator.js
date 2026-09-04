@@ -99,12 +99,27 @@
         return segments;
     }
 
+    function renderState(title, detail, type = 'info') {
+        refs.output.innerHTML = `
+            <section class="result-state is-${type}" role="status">
+                <strong>${title}</strong>
+                <span>${detail}</span>
+            </section>
+        `;
+    }
+
     function render(route) {
         const distanceKm = km(route.distance);
         const fare = baseFare(distanceKm) * fareMultiplier();
         const estimatedMinutes = Math.max(1, Math.round(distanceKm * 2.2));
         const segments = compressSegments(route);
+        const start = route.path[0];
+        const end = route.path[route.path.length - 1];
         refs.output.innerHTML = `
+            <div class="result-heading">
+                <div><span class="section-kicker">测算结果</span><h2>${start} → ${end}</h2></div>
+                <span class="status-chip is-ready">${route.path.length - 1} 站 · ${Math.max(0, segments.length - 1)} 次换乘</span>
+            </div>
             <div class="fare-result">
                 <div class="fare-card"><div class="fare-value">${formatMoney(fare)}</div><div class="metric-label">预计票价</div></div>
                 <div class="fare-card"><div class="fare-value">${distanceKm.toFixed(1)}km</div><div class="metric-label">最短距离</div></div>
@@ -119,20 +134,31 @@
                     </div>
                 `).join('')}
             </div>
+            <div class="result-actions">
+                <a class="btn btn-primary" href="query.html?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&auto=1">查看完整乘车方案</a>
+                <a class="btn btn-ghost" href="Map.html?station=${encodeURIComponent(start)}">在线路图查看</a>
+            </div>
+            <details class="information-disclosure">
+                <summary>票价估算口径</summary>
+                <p>按本地站点边数据的最短距离计算；乘客类型和出行时段折扣仅用于本项目演示，实际票价以运营方规则为准。</p>
+            </details>
         `;
     }
 
     function calculate() {
         const start = startPicker?.resolve();
         const end = endPicker?.resolve();
-        if (!stationData || !stationData[start] || !stationData[end] || start === end) {
-            refs.output.textContent = '请选择有效且不同的站点';
+        if (!stationData || !stationData[start] || !stationData[end]) {
+            renderState('请选择完整站点', '需要从候选列表中选择出发站和目的站。', 'warning');
+            return;
+        }
+        if (start === end) {
+            renderState('起终点相同', '请选择不同站点后重新测算。', 'warning');
             return;
         }
         const route = dijkstra(start, end);
-        refs.output.textContent = '';
         if (!route) {
-            refs.output.textContent = '未找到可用路径';
+            renderState('未找到可用路径', '站点存在，但本地边数据未连接这两个站点。', 'error');
             return;
         }
         render(route);
@@ -140,14 +166,19 @@
 
     async function init() {
         try {
-            const [stationResponse, timetable, pinyinResponse] = await Promise.all([
-                fetch('data/_station.json'),
+            const [stations, timetable, pinyinMap] = await Promise.all([
+                window.TransitAPI?.loadStations
+                    ? window.TransitAPI.loadStations()
+                    : fetch('data/_station.json').then((response) => {
+                        if (!response.ok) throw new Error(`station data ${response.status}`);
+                        return response.json();
+                    }),
                 loadTimetableData(),
-                fetch('data/station_pinyin.json').catch(() => null)
+                window.TransitAPI?.loadPinyin
+                    ? window.TransitAPI.loadPinyin()
+                    : fetch('data/station_pinyin.json').then((response) => response.ok ? response.json() : {}).catch(() => ({}))
             ]);
-            if (!stationResponse.ok) throw new Error(`station data ${stationResponse.status}`);
-            stationData = await stationResponse.json();
-            const pinyinMap = pinyinResponse?.ok ? await pinyinResponse.json() : {};
+            stationData = stations;
             const index = window.TransitData.buildLineIndex(stationData, timetable, { pinyinMap });
             startPicker = window.TransitData.createStationPicker(index, stationData, {
                 input: refs.start,
@@ -174,17 +205,17 @@
             if (end && stationData[end]) endPicker.setStation(end);
             refs.calc.addEventListener('click', calculate);
             refs.swap.addEventListener('click', () => {
-                const start = refs.start.value;
-                refs.start.value = refs.end.value;
-                refs.end.value = start;
-                delete refs.start.dataset.station;
-                delete refs.end.dataset.station;
+                const start = startPicker.resolve();
+                const end = endPicker.resolve();
+                if (end) startPicker.setStation(end);
+                if (start) endPicker.setStation(start);
             });
             refs.passenger.addEventListener('change', calculate);
             refs.period.addEventListener('change', calculate);
+            if (start && end && stationData[start] && stationData[end]) calculate();
         } catch (error) {
             console.error(error);
-            refs.output.textContent = '数据加载失败';
+            renderState('数据加载失败', '请检查本地服务和 data 目录中的站点文件。', 'error');
         }
     }
 

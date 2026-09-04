@@ -7,6 +7,8 @@ let transferWeights = {}; // 换乘站点的权重，用于标记换乘站
 let isDataReady = false; // 标记时刻表和站点数据是否加载完成
 let stationPickerIndex = null;
 let stationPinyinMap = {};
+let hasAutoQueried = false;
+const RECENT_ROUTE_KEY = 'subwayRecentRoutes';
 
 function setDataReadyState(ready) {
     isDataReady = ready;
@@ -84,8 +86,16 @@ function applyRouteParams() {
     const params = new URLSearchParams(window.location.search);
     const start = params.get('start') || params.get('station');
     const end = params.get('end');
+    const mode = params.get('mode');
+    if (mode === 'shortestTime' || mode === 'leastTransfers') setTravelRequirement(mode);
     if (start && stationData[start]) window.__queryPickers?.start?.setStation(start);
     if (end && stationData[end]) window.__queryPickers?.end?.setStation(end);
+    if (!hasAutoQueried && params.get('auto') === '1' && start && end && stationData[start] && stationData[end]) {
+        hasAutoQueried = true;
+        setTimeout(() => {
+            if (isDataReady) getRoute();
+        }, 0);
+    }
 }
 
 function swapRouteEndpoints() {
@@ -145,20 +155,26 @@ function assignTransferWeights(adjacencyList) {
     return transferWeights; // 返回包含每个站点换乘权重的对象
 }
 
-// 使用Promise加载地铁时刻表timetable.json和站点信息_station.json数据
-Promise.all([
-    // 加载拆分后的时刻表分片并合并
-    loadTimetableData(),
-    // 使用fetch API请求_station.json文件
-    fetch('data/_station.json').then(response => {
-        // 检查HTTP响应状态是否成功 (2xx)
+function loadStationDataset() {
+    if (window.TransitAPI?.loadStations) return window.TransitAPI.loadStations();
+    return fetch('data/_station.json').then(response => {
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        // 将响应体解析为JSON格式
         return response.json();
-    }),
-    fetch('data/station_pinyin.json')
+    });
+}
+
+function loadPinyinDataset() {
+    if (window.TransitAPI?.loadPinyin) return window.TransitAPI.loadPinyin();
+    return fetch('data/station_pinyin.json')
         .then(response => (response.ok ? response.json() : {}))
-        .catch(() => ({}))
+        .catch(() => ({}));
+}
+
+// 使用Promise加载地铁时刻表和站点信息数据
+Promise.all([
+    loadTimetableData(),
+    loadStationDataset(),
+    loadPinyinDataset()
 ])
     .then(([timetable, stations, pinyinMap]) => {
         // 当两个Promise都成功resolved后，将返回的数据分别赋值给timetableData和stationData
@@ -173,8 +189,8 @@ Promise.all([
         subwayGraph = buildGraph(timetableData); // 调用buildGraph函数，使用加载的时刻表数据构建地铁线路图
         console.log('Stations in graph:', Object.keys(subwayGraph.adjacencyList)); // 输出地铁图中包含的站点数量
         assignTransferWeights(subwayGraph.adjacencyList); // 调用assignTransferWeights函数，为地铁图中的换乘站分配权重
-        setupStationPickers();
         setDataReadyState(true);
+        setupStationPickers();
     })
     .catch(error => {
         // 如果在加载或解析数据过程中发生错误，则在控制台输出错误信息
@@ -852,11 +868,15 @@ function buildRouteLineDiagram(segments) {
                 return `
                     <section class="route-line-block" style="--line-color:${lineColor(block.line)};">
                         <div class="route-line-label"><strong>${block.line}</strong><span>${minutes}分钟</span>${transfer}</div>
-                        <div class="route-line-track"></div>
-                        <div class="route-station-strip">
-                            ${block.stations.map((stationName, stationIndex) => `
-                                <span class="route-station${stationIndex === 0 || stationIndex === block.stations.length - 1 ? ' is-terminal' : ''}">${stationName}</span>
-                            `).join('')}
+                        <div class="route-line-scroll">
+                            <div class="route-line-content">
+                                <div class="route-line-track"></div>
+                                <div class="route-station-strip">
+                                    ${block.stations.map((stationName, stationIndex) => `
+                                        <span class="route-station${stationIndex === 0 || stationIndex === block.stations.length - 1 ? ' is-terminal' : ''}">${stationName}</span>
+                                    `).join('')}
+                                </div>
+                            </div>
                         </div>
                     </section>
                 `;
@@ -885,6 +905,31 @@ function normalizeRouteMetrics(route, actualTimeResult) {
     };
 }
 
+function renderRouteState(title, detail, type = 'info') {
+    const resultDiv = document.getElementById('result');
+    if (!resultDiv) return;
+    resultDiv.innerHTML = `
+        <section class="result-state is-${type}" role="status">
+            <strong>${title}</strong>
+            <span>${detail}</span>
+        </section>
+    `;
+}
+
+function saveRecentRoute(start, end, mode) {
+    try {
+        const existing = JSON.parse(localStorage.getItem(RECENT_ROUTE_KEY) || '[]');
+        const safeExisting = Array.isArray(existing) ? existing : [];
+        const next = [
+            { start, end, mode, time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }) },
+            ...safeExisting.filter((item) => item?.start !== start || item?.end !== end),
+        ].slice(0, 6);
+        localStorage.setItem(RECENT_ROUTE_KEY, JSON.stringify(next));
+    } catch (_) {
+        // Browsers can disable storage; route planning must still work.
+    }
+}
+
 // 查询地铁路线的函数
 function getRoute() {
 const startStation = resolvePickerStation('start-station'); // 获取用户输入或选择的起始站
@@ -892,13 +937,18 @@ const endStation = resolvePickerStation('end-station'); // 获取用户输入或
 
 // 检查是否输入了起始站和目的站
 if (!startStation || !endStation) {
-    alert('请输入起始站和目的站！');
+    renderRouteState('还不能开始查询', '请从候选列表中分别选择出发站和目的站。', 'warning');
+    return;
+}
+
+if (startStation === endStation) {
+    renderRouteState('起终点相同', '请选择另一个目的站，或使用交换按钮调整行程。', 'warning');
     return;
 }
 
 // 检查地铁图和时刻表是否已加载
 if (!isDataReady || !subwayGraph || !timetableData) {
-    if (window.showToast) window.showToast('未加载');
+    renderRouteState('数据仍在加载', '站点与时刻表准备完成后即可查询。', 'warning');
     return;
 }
 
@@ -916,7 +966,7 @@ if (travelRequirement === '最短时间') {
 
 // 如果没有找到合适的路线
 if (!routeResult) {
-    resultDiv.innerHTML = '<div class="route-path-card">未找到合适的路线，请检查站点名称或时刻表数据。</div>';
+    renderRouteState('未找到可用路径', '站点仍可浏览，但当前数据可能缺少连接边或时刻表。', 'error');
     return;
 }
 
@@ -924,7 +974,7 @@ if (!routeResult) {
 const actualTime = calculateActualTime(startStation, endStation, routeResult.path, currentTimeInMinutes);
 // 如果无法计算实际时间
 if (!actualTime) {
-    resultDiv.innerHTML = '<div class="route-path-card">无法计算实际时间，请检查时刻表数据。</div>';
+    renderRouteState('无法估算当前行程', '路线存在，但对应时段缺少可用时刻表。', 'error');
     return;
 }
 
@@ -937,6 +987,7 @@ const { path, startTime, endTime, segments, stationTimes } = actualTime;
 const simplifiedLines = simplifyLines(segments.map(s => s.line));
 // 计算换乘次数
 const transferCount = routeMetrics.transferCount;
+saveRecentRoute(startStation, endStation, travelRequirement === '最少换乘' ? 'leastTransfers' : 'shortestTime');
 
 // 构建每站到站时间的HTML
 let stationTimesHTML = '<div class="route-path-card"><strong>每站到站时间</strong><ul class="station-time-list">';
@@ -947,10 +998,16 @@ stationTimesHTML += '</ul></div>';
 
 // 将查询结果显示在页面上
 resultDiv.innerHTML = `
-    <div class="route-path-card">
-        <div class="pill">${travelRequirement}乘车方案</div>
-        <h3 style="margin:10px 0 0;">${startStation} → ${endStation}</h3>
-        <p class="subtitle">线路：${simplifiedLines.join(' → ')}</p>
+    <div class="route-path-card route-result-head">
+        <div>
+            <div class="pill">${travelRequirement}乘车方案</div>
+            <h3>${startStation} → ${endStation}</h3>
+            <p class="subtitle">${path.length - 1} 站 · 线路 ${simplifiedLines.join(' → ')}</p>
+        </div>
+        <div class="route-result-actions">
+            <a class="btn btn-ghost" href="Map.html?station=${encodeURIComponent(startStation)}">在线路图查看</a>
+            <a class="btn btn-ghost" href="fare_calculator.html?start=${encodeURIComponent(startStation)}&end=${encodeURIComponent(endStation)}">测算票价</a>
+        </div>
     </div>
     <div class="route-summary">
         <div class="route-summary-card"><span class="combo-kind">预计出发</span><strong>${minutesToTimeString(startTime)}</strong></div>
