@@ -18,13 +18,121 @@
         dataMode: document.getElementById('home-data-mode'),
         updated: document.getElementById('home-updated'),
         recent: document.getElementById('home-recent-routes'),
+        liveTitle: document.getElementById('home-live-title'),
+        liveClock: document.getElementById('home-live-clock'),
+        departures: document.getElementById('home-live-departures'),
     };
 
     const RECENT_ROUTE_KEY = 'subwayRecentRoutes';
     let stations = null;
+    let timetableData = null;
     let startPicker = null;
     let endPicker = null;
     let routeMode = 'shortestTime';
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function timeToMinutes(value) {
+        const match = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
+        if (!match) return NaN;
+        return Number(match[1]) * 60 + Number(match[2]);
+    }
+
+    function currentMinute() {
+        const now = new Date();
+        return now.getHours() * 60 + now.getMinutes();
+    }
+
+    function findNextDepartures(stationName, limit = 4) {
+        if (!stationName || !timetableData) return [];
+        const dayData = window.TransitData.getDayData(timetableData) || {};
+        const nowMinute = currentMinute();
+        const departures = [];
+        const seen = new Set();
+
+        Object.entries(dayData).forEach(([line, lineData]) => {
+            Object.entries(lineData || {}).forEach(([direction, trains]) => {
+                Object.entries(trains || {}).forEach(([trainNo, schedule]) => {
+                    if (!Array.isArray(schedule)) return;
+                    const stopIndex = schedule.findIndex((stop) => stop?.[0] === stationName);
+                    if (stopIndex < 0 || stopIndex >= schedule.length - 1) return;
+                    const time = schedule[stopIndex]?.[1];
+                    const minute = timeToMinutes(time);
+                    if (!Number.isFinite(minute) || minute < nowMinute) return;
+                    const key = `${line}|${direction}|${time}`;
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    departures.push({
+                        line,
+                        direction,
+                        trainNo,
+                        time,
+                        minute,
+                        waitMinutes: minute - nowMinute,
+                        terminal: schedule[schedule.length - 1]?.[0] || direction,
+                    });
+                });
+            });
+        });
+
+        return departures
+            .sort((first, second) => first.minute - second.minute || first.line.localeCompare(second.line, 'zh-CN', { numeric: true }))
+            .slice(0, limit);
+    }
+
+    function waitLabel(minutes) {
+        if (minutes <= 0) return '即将进站';
+        if (minutes === 1) return '约 1 分钟';
+        return `约 ${minutes} 分钟`;
+    }
+
+    function renderNextDepartures(stationName) {
+        if (!refs.departures || !refs.liveTitle) return;
+        if (!stationName) {
+            refs.liveTitle.textContent = '选择出发站';
+            refs.liveClock.textContent = '当前时刻';
+            refs.departures.innerHTML = '<div class="home-departure-empty">选好出发站后，这里会立即显示接下来的列车。</div>';
+            return;
+        }
+
+        const departures = findNextDepartures(stationName);
+        refs.liveTitle.textContent = `${stationName} · 下一班`;
+        refs.liveClock.textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+        if (!departures.length) {
+            refs.departures.innerHTML = '<div class="home-departure-empty">当前时段没有可用的后续列车，请查看运行看板确认首末班。</div>';
+            return;
+        }
+
+        refs.departures.innerHTML = departures.map((departure) => {
+            const color = window.TransitData.lineColor(departure.line);
+            return `
+                <a class="home-departure-row" href="service_board.html" style="--departure-color:${color}">
+                    <span class="home-departure-line">${escapeHtml(window.TransitData.simplifyLineName(departure.line))}</span>
+                    <span class="home-departure-destination">开往 ${escapeHtml(departure.terminal)}</span>
+                    <span class="home-departure-wait"><strong>${escapeHtml(waitLabel(departure.waitMinutes))}</strong><small>${escapeHtml(departure.time)}</small></span>
+                </a>
+            `;
+        }).join('');
+    }
+
+    function updatePlannerReadiness() {
+        const { start, end } = resolveEndpoints();
+        renderNextDepartures(start);
+        if (start && end) {
+            setMessage(`${start} → ${end} 已就绪，选择偏好后开始规划。`, 'ready');
+        } else if (start) {
+            setMessage(`已选择 ${start}，继续选择目的站。`, 'ready');
+        } else if (end) {
+            setMessage(`已选择 ${end}，继续选择出发站。`, 'ready');
+        }
+    }
 
     function setMessage(message, type = '') {
         refs.message.textContent = message;
@@ -100,7 +208,7 @@
             refs.end.value = '';
             delete refs.end.dataset.station;
         }
-        setMessage('起终点已交换。');
+        updatePlannerReadiness();
     }
 
     function wireControls() {
@@ -115,7 +223,7 @@
         refs.submit.addEventListener('click', submitRoute);
         refs.swap.addEventListener('click', swapEndpoints);
         [refs.start, refs.end].forEach((input) => {
-            input.addEventListener('stationchange', () => setMessage('站点已选择，可开始规划。', 'ready'));
+            input.addEventListener('stationchange', updatePlannerReadiness);
             input.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' && input.getAttribute('aria-expanded') !== 'true') {
                     submitRoute();
@@ -138,6 +246,7 @@
                 window.TransitAPI.getNetworkSummary(),
             ]);
             stations = stationData;
+            timetableData = timetable;
             const index = window.TransitData.buildLineIndex(stations, timetable, { pinyinMap });
             startPicker = window.TransitData.createStationPicker(index, stations, {
                 input: refs.start,

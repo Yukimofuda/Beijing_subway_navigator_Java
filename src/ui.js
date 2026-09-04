@@ -138,6 +138,38 @@
   function initializeProductChrome() {
     createSiteNavigation();
     markActiveNavigation();
+    installProductMetadata();
+    loadGlobalNavigator();
+  }
+
+  function installProductMetadata() {
+    if (!document.querySelector('meta[name="theme-color"]')) {
+      const theme = document.createElement('meta');
+      theme.name = 'theme-color';
+      theme.content = '#102a43';
+      document.head.appendChild(theme);
+    }
+    if (!document.querySelector('link[rel="manifest"]')) {
+      const manifest = document.createElement('link');
+      manifest.rel = 'manifest';
+      manifest.href = 'manifest.webmanifest';
+      document.head.appendChild(manifest);
+    }
+    if (!document.querySelector('link[rel="icon"]')) {
+      const icon = document.createElement('link');
+      icon.rel = 'icon';
+      icon.href = 'assets/app-mark.svg';
+      icon.type = 'image/svg+xml';
+      document.head.appendChild(icon);
+    }
+  }
+
+  function loadGlobalNavigator() {
+    if (document.querySelector('script[data-global-navigator]')) return;
+    const script = document.createElement('script');
+    script.src = 'src/globalNavigator.js';
+    script.dataset.globalNavigator = 'true';
+    document.head.appendChild(script);
   }
 
   if (document.readyState === 'loading') {

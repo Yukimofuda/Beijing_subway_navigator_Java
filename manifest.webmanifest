@@ -1,0 +1,19 @@
+{
+  "name": "北京地铁出行",
+  "short_name": "北京地铁",
+  "description": "路线规划、线路图、票价、站点导览与运行时刻一体化工具。",
+  "lang": "zh-CN",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#e9eff5",
+  "theme_color": "#102a43",
+  "icons": [
+    {
+      "src": "/assets/app-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

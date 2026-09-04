@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="北京地铁出行">
+  <defs>
+    <linearGradient id="bg" x1="18" y1="8" x2="110" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#123c63"/>
+      <stop offset="1" stop-color="#075a9c"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="30" fill="url(#bg)"/>
+  <circle cx="64" cy="64" r="34" fill="none" stroke="#fff" stroke-width="14"/>
+  <path d="M64 18v92" stroke="#ff4b55" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="64" cy="64" r="8" fill="#fff"/>
+</svg>
