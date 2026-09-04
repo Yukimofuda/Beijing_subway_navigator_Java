@@ -39,6 +39,19 @@
   const root = document.documentElement;
   root.classList.add('js');
 
+  function markPageIdentity() {
+    if (!document.body) return;
+    const filename = (window.location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    const pageName = filename
+      .replace(/\.html$/, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'index';
+    document.body.classList.add('product-ui', `page-${pageName}`);
+    document.body.dataset.page = pageName;
+  }
+
+  markPageIdentity();
+
   // Page enter animation
   requestAnimationFrame(() => {
     root.classList.add('is-ready');
@@ -136,6 +149,7 @@
   }
 
   function initializeProductChrome() {
+    markPageIdentity();
     createSiteNavigation();
     markActiveNavigation();
     installProductMetadata();

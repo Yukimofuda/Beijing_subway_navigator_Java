@@ -523,7 +523,7 @@
     viewport.addEventListener('dblclick', (event) => zoomAt(1.25, event.clientX, event.clientY));
 
     viewport.addEventListener('pointerdown', (event) => {
-        if (!event.shiftKey) return;
+        if (!event.shiftKey && event.pointerType !== 'touch') return;
         isDragging = true;
         lastPointerX = event.clientX;
         lastPointerY = event.clientY;

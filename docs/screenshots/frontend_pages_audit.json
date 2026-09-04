@@ -5,7 +5,7 @@
     {
       "page": "/index.html",
       "status": 200,
-      "textLength": 319,
+      "textLength": 357,
       "buttons": 6,
       "inputs": 6,
       "ok": true,
@@ -32,7 +32,7 @@
     {
       "page": "/fare_calculator.html",
       "status": 200,
-      "textLength": 131,
+      "textLength": 165,
       "buttons": 6,
       "inputs": 8,
       "ok": true,

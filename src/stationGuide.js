@@ -237,19 +237,23 @@
         const facts = document.createElement('div');
         facts.className = 'station-fact-grid';
         [
-            [detail?.knownExits?.length ? detail.knownExits.join(' / ') : '暂无核验数据', '出入口'],
-            [detail?.exitCountText || '暂无核验数据', '出口数量'],
-            [detail?.nearby?.join(' / ') || '暂无核验数据', '周边地点'],
-            [detail?.services?.join(' / ') || '暂无核验数据', '站内服务']
-        ].forEach(([value, label]) => {
+            [detail?.knownExits?.length ? detail.knownExits.join(' / ') : '', '出入口'],
+            [detail?.exitCountText || '', '出口数量'],
+            [detail?.nearby?.join(' / ') || '', '周边地点'],
+            [detail?.services?.join(' / ') || '', '站内服务']
+        ].filter(([value]) => value).forEach(([value, label]) => {
             const tile = document.createElement('div');
             tile.className = 'station-tile';
             tile.appendChild(node('div', value, 'metric-value compact'));
             tile.appendChild(node('div', label, 'metric-label'));
             facts.appendChild(tile);
         });
-        section.appendChild(facts);
-        section.appendChild(renderFacilitySection(detail));
+        if (facts.childElementCount) section.appendChild(facts);
+        if (detail) {
+            section.appendChild(renderFacilitySection(detail));
+        } else {
+            section.appendChild(node('p', '暂无详细站点信息；线路、相邻站和路线规划仍可正常使用。', 'station-data-availability'));
+        }
 
         if (detail?.tips) {
             const tips = document.createElement('div');
@@ -293,7 +297,16 @@
         clearNode(refs.detail);
 
         if (!info) {
-            refs.detail.appendChild(node('div', stationName ? '未找到该站点，请检查 data/_station.json' : '请选择站点查看导览信息', 'muted'));
+            const empty = document.createElement('section');
+            empty.className = `result-state guide-empty-state${stationName ? ' is-warning' : ''}`;
+            empty.appendChild(node('strong', stationName ? '未找到这个站点' : '从一个站点开始'));
+            empty.appendChild(node(
+                'span',
+                stationName
+                    ? '请从左侧完整站点列表重新选择，或检查 data/_station.json。'
+                    : '搜索站名或先选择线路，即可查看相邻站、首末班、设施与出行入口。'
+            ));
+            refs.detail.appendChild(empty);
             return;
         }
         state.selected = stationName;
@@ -328,14 +341,15 @@
         const firstLast = getFirstLast(stationName);
         const grid = document.createElement('div');
         grid.className = 'station-grid';
+        const adjacentStations = Array.from(new Set(adjacency.flatMap((item) => [item.previous, item.next]).filter(Boolean)));
         [
             [firstLast.first ? firstLast.first.time : '暂无时刻数据', '最早到发'],
             [firstLast.last ? firstLast.last.time : '暂无时刻数据', '最晚到发'],
             [String(firstLast.count), '匹配班次'],
-            [state.details?.[stationName]?.exitCountText || '暂无核验数据', '出口数量'],
-            [Array.from(new Set(adjacency.flatMap((item) => [item.previous, item.next]).filter(Boolean))).slice(0, 4).join(' / ') || '暂无相邻站数据', '相邻站'],
-            [state.details?.[stationName]?.nearby?.join(' / ') || '暂无核验数据', '周边地点']
-        ].forEach(([value, label]) => {
+            [state.details?.[stationName]?.exitCountText || '', '出口数量'],
+            [adjacentStations.slice(0, 4).join(' / ') || '暂无相邻站数据', '相邻站'],
+            [state.details?.[stationName]?.nearby?.join(' / ') || '', '周边地点']
+        ].filter(([value]) => value).forEach(([value, label]) => {
             const tile = document.createElement('div');
             tile.className = 'station-tile';
             const valueClass = String(value).length > 10 ? 'metric-value compact' : 'metric-value';

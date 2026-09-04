@@ -641,7 +641,7 @@ function reconstructPath(predecessors, endStation) {
 
 
 // 计算实际出行时间和每站到站时间的函数
-function calculateActualTime(startStation, endStation, path, currentTimeInMinutes) {
+function calculateActualTime(startStation, endStation, path, currentTimeInMinutes, plannedLines = []) {
     // 如果路径为空或只有一个站点，则返回null
     if (!path || path.length < 2) return null;
 
@@ -654,33 +654,46 @@ function calculateActualTime(startStation, endStation, path, currentTimeInMinute
     for (let i = 0; i < path.length - 1; i++) {
         const fromStation = path[i]; // 当前段的起始站
         const toStation = path[i + 1]; // 当前段的目的站
+        const plannedEdge = (subwayGraph?.adjacencyList?.[fromStation] || []).find((edge) => (
+            edge.station === toStation && (!plannedLines[i] || edge.line === plannedLines[i])
+        ));
+        const plannedLine = plannedLines[i] || plannedEdge?.line || prevLine;
+        const staticSegmentMinutes = Number(plannedEdge?.travelTime) || 2;
         // 查找从当前起始站到目的站的下一班符合条件的列车
-        const nextDeparture = findNextDeparture(fromStation, toStation, currentTime, prevLine);
+        const nextDeparture = findNextDeparture(fromStation, toStation, currentTime, prevLine, plannedLine);
         // 如果没有找到合适的发车信息
         if (!nextDeparture) {
             console.warn(`No timetable data for ${fromStation} to ${toStation}, estimating 2 minutes`);
-            const estimatedArrival = currentTime + 2;
+            const estimatedArrival = currentTime + staticSegmentMinutes;
             segments.push({
                 from: fromStation,
                 to: toStation,
-                line: prevLine || '未知线路',
+                line: plannedLine || '未知线路',
                 departure: currentTime,
-                arrival: estimatedArrival
+                arrival: estimatedArrival,
+                estimated: true
             });
             currentTime = estimatedArrival; // 更新当前时间为到达时间
         } else {
             // 如果找到了发车信息
+            const resolvedLine = nextDeparture.line === '未知线路'
+                ? (plannedLine || nextDeparture.line)
+                : nextDeparture.line;
+            const resolvedArrival = nextDeparture.estimated
+                ? currentTime + staticSegmentMinutes
+                : nextDeparture.arrivalMinutes;
             segments.push({
                 from: fromStation,
                 to: toStation,
-                line: nextDeparture.line,
+                line: resolvedLine,
                 departure: nextDeparture.departureMinutes,
-                arrival: nextDeparture.arrivalMinutes
+                arrival: resolvedArrival,
+                estimated: Boolean(nextDeparture.estimated)
             });
-            currentTime = nextDeparture.arrivalMinutes; // 更新当前时间为到达时间
+            currentTime = resolvedArrival; // 更新当前时间为到达时间
         }
         stationTimes.push({ station: toStation, time: currentTime }); // 记录到达目的站的时间
-        prevLine = nextDeparture ? nextDeparture.line : prevLine; // 更新上一段行程的线路
+        prevLine = segments[segments.length - 1].line || prevLine; // 更新上一段行程的线路
     }
 
     return {
@@ -688,17 +701,20 @@ function calculateActualTime(startStation, endStation, path, currentTimeInMinute
         startTime: segments[0].departure, // 预计出发时间
         endTime: segments[segments.length - 1].arrival, // 预计到达时间
         segments, // 每一段行程的详细信息
-        stationTimes // 每个站点的到达时间
+        stationTimes, // 每个站点的到达时间
+        hasEstimatedSegments: segments.some((segment) => segment.estimated)
     };
 }
 
 // 查找下一班符合条件的列车的函数
-function findNextDeparture(fromStation, toStation, currentTimeInMinutes, prevLine) {
+function findNextDeparture(fromStation, toStation, currentTimeInMinutes, prevLine, preferredLine) {
     let earliestDeparture = Infinity; // 初始化最早的出发时间为无穷大
     let result = null; // 用于存储找到的下一班列车的信息
 
     // 优先考虑2号线
-    const lines = ['2号线', ...Object.keys(timetableData).filter(l => l !== '2号线')];
+    const lines = preferredLine && timetableData[preferredLine]
+        ? [preferredLine]
+        : ['2号线', ...Object.keys(timetableData).filter(l => l !== '2号线')];
     for (const line of lines) {
         if (!timetableData[line]) continue; // 如果当前线路没有时刻表数据，则跳过
         const isTransfer = prevLine && prevLine !== line; // 判断是否需要换乘
@@ -745,7 +761,8 @@ function findNextDeparture(fromStation, toStation, currentTimeInMinutes, prevLin
         result = {
             departureMinutes: currentTimeInMinutes,
             arrivalMinutes: currentTimeInMinutes + 2,
-            line: prevLine || '未知线路'
+            line: preferredLine || prevLine || '未知线路',
+            estimated: true
         };
     }
     return result; // 返回找到的下一班列车信息，如果没有找到则返回估计的信息
@@ -891,7 +908,8 @@ function countTransfersFromLines(lines) {
 
 function normalizeRouteMetrics(route, actualTimeResult) {
     const staticTravelMinutes = Number(route.time ?? route.totalTime ?? route.distance ?? 0);
-    const estimatedActualMinutes = actualTimeResult
+    const hasEstimatedSegments = Boolean(actualTimeResult?.hasEstimatedSegments);
+    const estimatedActualMinutes = actualTimeResult && !hasEstimatedSegments
         ? actualTimeResult.endTime - actualTimeResult.startTime
         : null;
     return {
@@ -901,6 +919,7 @@ function normalizeRouteMetrics(route, actualTimeResult) {
         estimatedDepartureTime: actualTimeResult ? actualTimeResult.startTime : null,
         estimatedArrivalTime: actualTimeResult ? actualTimeResult.endTime : null,
         estimatedActualMinutes,
+        hasEstimatedSegments,
         actualTimeResult
     };
 }
@@ -971,7 +990,13 @@ if (!routeResult) {
 }
 
 // 计算实际出行时间
-const actualTime = calculateActualTime(startStation, endStation, routeResult.path, currentTimeInMinutes);
+const actualTime = calculateActualTime(
+    startStation,
+    endStation,
+    routeResult.path,
+    currentTimeInMinutes,
+    routeResult.lines || []
+);
 // 如果无法计算实际时间
 if (!actualTime) {
     renderRouteState('无法估算当前行程', '路线存在，但对应时段缺少可用时刻表。', 'error');
@@ -990,11 +1015,21 @@ const transferCount = routeMetrics.transferCount;
 saveRecentRoute(startStation, endStation, travelRequirement === '最少换乘' ? 'leastTransfers' : 'shortestTime');
 
 // 构建每站到站时间的HTML
-let stationTimesHTML = '<div class="route-path-card"><strong>每站到站时间</strong><ul class="station-time-list">';
-stationTimes.forEach(({ station, time }) => {
-    stationTimesHTML += `<li><span>${station}</span><strong>${minutesToTimeString(time)}</strong></li>`;
-});
-stationTimesHTML += '</ul></div>';
+let stationTimesHTML = '';
+if (routeMetrics.hasEstimatedSegments) {
+    stationTimesHTML = `
+        <section class="result-state is-warning">
+            <strong>当前时刻暂无可用班次</strong>
+            <span>线路与静态耗时仍可参考；预计出发、到达和逐站时刻不作推测。</span>
+        </section>
+    `;
+} else {
+    stationTimesHTML = '<div class="route-path-card"><strong>每站到站时间</strong><ul class="station-time-list">';
+    stationTimes.forEach(({ station, time }) => {
+        stationTimesHTML += `<li><span>${station}</span><strong>${minutesToTimeString(time)}</strong></li>`;
+    });
+    stationTimesHTML += '</ul></div>';
+}
 
 // 将查询结果显示在页面上
 resultDiv.innerHTML = `
@@ -1010,10 +1045,10 @@ resultDiv.innerHTML = `
         </div>
     </div>
     <div class="route-summary">
-        <div class="route-summary-card"><span class="combo-kind">预计出发</span><strong>${minutesToTimeString(startTime)}</strong></div>
-        <div class="route-summary-card"><span class="combo-kind">预计到达</span><strong>${minutesToTimeString(endTime)}</strong></div>
+        <div class="route-summary-card"><span class="combo-kind">预计出发</span><strong>${routeMetrics.hasEstimatedSegments ? '暂无班次' : minutesToTimeString(startTime)}</strong></div>
+        <div class="route-summary-card"><span class="combo-kind">预计到达</span><strong>${routeMetrics.hasEstimatedSegments ? '--:--' : minutesToTimeString(endTime)}</strong></div>
         <div class="route-summary-card"><span class="combo-kind">静态路径耗时</span><strong>${routeMetrics.staticTravelMinutes} 分钟</strong></div>
-        <div class="route-summary-card"><span class="combo-kind">预计实际出行</span><strong>${routeMetrics.estimatedActualMinutes} 分钟</strong></div>
+        <div class="route-summary-card"><span class="combo-kind">预计实际出行</span><strong>${routeMetrics.estimatedActualMinutes === null ? '暂无法估算' : `${routeMetrics.estimatedActualMinutes} 分钟`}</strong></div>
         <div class="route-summary-card"><span class="combo-kind">费用 / 换乘</span><strong>${fare} 元 · ${transferCount < 0 ? 0 : transferCount} 次</strong></div>
     </div>
     <div class="route-path-card"><strong>线路与站点</strong>${buildRouteLineDiagram(segments)}</div>
