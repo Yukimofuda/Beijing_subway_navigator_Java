@@ -8,25 +8,25 @@ const OUTPUT_DIR = path.join(ROOT, 'docs', 'screenshots');
 const PAGES = [
   {
     path: '/index.html',
-    mustContain: ['北京地铁查询系统'],
+    mustContain: ['北京地铁出行', 'home-submit'],
     minButtons: 2,
     minInputs: 0,
   },
   {
     path: '/query.html',
-    mustContain: ['线路查询', '出发站点', '目的站点', 'query-button'],
+    mustContain: ['路线规划', '从哪里出发', '目的站点', 'query-button'],
     minButtons: 4,
     minInputs: 2,
   },
   {
     path: '/Map.html',
-    mustContain: ['北京地铁线路图', 'map'],
+    mustContain: ['线路图', 'map'],
     minButtons: 1,
     minInputs: 1,
   },
   {
     path: '/fare_calculator.html',
-    mustContain: ['票价与距离测算', 'fare-calc', 'fare-actions'],
+    mustContain: ['票价查询', 'fare-calc', 'fare-actions'],
     minButtons: 2,
     minInputs: 2,
   },
@@ -38,7 +38,7 @@ const PAGES = [
   },
   {
     path: '/service_board.html',
-    mustContain: ['线路运行看板', '线路状态'],
+    mustContain: ['今日运营', '线路状态'],
     minButtons: 1,
     minInputs: 0,
   },

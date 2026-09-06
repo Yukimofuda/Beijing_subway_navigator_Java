@@ -139,8 +139,8 @@
                 <a class="btn btn-ghost" href="Map.html?station=${encodeURIComponent(start)}">在线路图查看</a>
             </div>
             <details class="information-disclosure">
-                <summary>票价估算口径</summary>
-                <p>按本地站点边数据的最短距离计算；乘客类型和出行时段折扣仅用于本项目演示，实际票价以运营方规则为准。</p>
+                <summary>票价说明</summary>
+                <p>结果按当前站点距离估算，仅供出行参考；实际票价以运营方公布为准。</p>
             </details>
         `;
     }
@@ -158,7 +158,7 @@
         }
         const route = dijkstra(start, end);
         if (!route) {
-            renderState('未找到可用路径', '站点存在，但本地边数据未连接这两个站点。', 'error');
+            renderState('暂时无法估算', '当前站点信息不足，请换一组站点重试。', 'error');
             return;
         }
         render(route);
@@ -215,7 +215,7 @@
             if (start && end && stationData[start] && stationData[end]) calculate();
         } catch (error) {
             console.error(error);
-            renderState('数据加载失败', '请检查本地服务和 data 目录中的站点文件。', 'error');
+            renderState('暂时无法载入', '请稍后刷新页面重试。', 'error');
         }
     }
 

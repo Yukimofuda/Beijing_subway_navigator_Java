@@ -1,43 +1,65 @@
-# UI Design Iteration
+# Product UI Review — v5
 
-## Direction
+## Product Goal
 
-This release keeps the native HTML/CSS/JavaScript architecture and all existing route, fare, timetable, station-picker, and SVG-map behavior. The redesign separates the translucent navigation/control layer from solid content surfaces, reduces repeated borders, and gives the primary action one consistent blue accent.
+The interface is a working Beijing metro travel tool, not a marketing landing page. The first screen therefore starts with origin, destination, travel preference, and the next departures. The original page background images remain in place; the new UI uses controlled translucent surfaces so the supplied artwork stays visible without reducing text contrast.
 
-References used during the design pass:
+## Requirement Alignment
 
-- [Apple Human Interface Guidelines: Design principles](https://developer.apple.com/design/human-interface-guidelines/design-principles)
-- [Apple Human Interface Guidelines: Layout](https://developer.apple.com/design/human-interface-guidelines/layout)
-- [Apple Human Interface Guidelines: Typography](https://developer.apple.com/design/human-interface-guidelines/typography)
-- [Apple Human Interface Guidelines: Materials](https://developer.apple.com/design/human-interface-guidelines/materials)
-- [MTR Trip Planner](https://www.mtr.com.hk/mtrmobile/en/transport/trip-planner/)
+| Course requirement | Product surface | Decision in this iteration |
+| --- | --- | --- |
+| Plan the shortest-time or least-transfer route | `index.html`, `query.html` | Put the origin/destination composer first and retain both route modes and the existing algorithm. |
+| Show route, line, distance, time, fare, and transfer details | `query.html`, `fare_calculator.html` | Keep the colored station strip and route metrics; make the summary readable before the detailed path. |
+| Browse the subway map | `Map.html` | Use a compact inspector beside the largest possible map canvas; keep SVG search, zoom, pan, hover, and next-train behavior. |
+| Browse lines, stations, trains, and timetables | `lines.html`, `stations.html`, `trains.html`, `timetable.html` | Strengthen hierarchy, filters, sticky table headers, overflow handling, and empty states without changing data flow. |
+| Inspect station details | `station_guide.html` | Present station selection and detail as a master-detail workspace; retain neighboring stations, facilities, and route shortcuts. |
+| View operating information | `service_board.html` | Prioritize the current service state and departure information instead of implementation details. |
+| Manage line data through the Node service | Existing management pages and APIs | No backend or route-management behavior is removed or replaced in this visual pass. |
 
-## Implemented System
+## Product Review
 
-- Navigation: compact frosted control layer, active-page state, 44 px mobile targets.
-- Typography: system-font stack, fewer weights, tighter display-heading tracking, readable body contrast.
-- Surfaces: 28 px page shells, 18–22 px content groups, subtle hairlines instead of repeated framed boxes.
-- Controls: 48 px fields, 44 px buttons, one primary blue action, quieter secondary actions, visible focus rings.
-- Homepage: task-first planner, generated network artwork, live local-data panel, asymmetric tool grid.
-- Query: unified origin/destination composer, restrained preference control, preserved colored route strip.
-- Map: consolidated inspector, square SVG aspect ratio, larger pan canvas, direct touch panning.
-- Fare and station pages: explicit information hierarchy, balanced empty states, consolidated missing-data messages.
+### Problems Found
 
-## Independent Review
+- The previous homepage split one task across a large planner card, a dark diagnostics panel, and several isolated numbered cards. It read like a component showcase rather than one connected journey.
+- Several labels described implementation details such as local files, indexes, and data modes. These do not help a passenger decide what to do next.
+- Borders, radii, and elevations varied between pages. Some nested panels looked like unrelated boxes and several long route/table elements could exceed their intended surface.
+- The map inspector competed with the SVG instead of supporting it; list pages lacked enough visual distinction between controls, status, and data.
+- Generic explanatory paragraphs repeated what nearby controls already communicated, making the interface feel generated rather than authored.
 
-First review: **7.1/10**. The reviewer found strong visual hierarchy and color, but flagged route-label credibility, mobile map scaling, oversized empty states, repeated missing-data cards, and small mobile targets.
+### Implemented Decisions
 
-After the second implementation pass: **8.5/10**.
+- Adopt a transit-first silhouette: connected A/B station composer, one primary action, immediate departure context, and four compact utility destinations.
+- Use one restrained blue action color, real metro line colors for route meaning, neutral white content surfaces, and dark navy only for high-value live information.
+- Replace decorative numbering with custom functional line icons; reduce corner radii and remove repeated nested borders.
+- Keep route strips intrinsically sized to their station content and place horizontal scrolling on the strip viewport, preventing colored borders from overshooting the station row.
+- Convert technical copy to short passenger language while preserving accurate loading, empty, and failure states.
+- Keep all original background-image declarations untouched and visible behind the application surfaces.
 
-| Dimension | Score |
-| --- | ---: |
-| Visual hierarchy | 9.0 |
-| Typography | 8.6 |
-| Color | 8.8 |
-| Component consistency | 8.5 |
-| Interaction discoverability | 8.4 |
-| Accessibility | 8.2 |
-| Responsiveness | 8.3 |
-| Product authenticity | 8.1 |
+## Visual Reference Notes
 
-The reviewer classified the result as ready for public demonstration. Remaining production risks are data-related: the current SVG exposes 312 interactive station labels while the searchable station registry contains 404 stations, and local timetable freshness depends on the checked-in data files.
+- [Apple Human Interface Guidelines — Maps](https://developer.apple.com/design/human-interface-guidelines/maps): keep controls secondary to the map and reveal detail in context.
+- [MTR Journey Planner](https://www.mtr.com.hk/en/customer/jp/index.php): make origin, destination, and travel options the primary interaction rather than an introductory hero.
+- [Transport for London Journey Planner](https://tfl.gov.uk/plan-a-journey/): expose route options, accessible choices, and live service information with concise task-oriented labels.
+
+These references inform hierarchy and interaction patterns only; no page or generated component code was copied.
+
+## Independent UI Review
+
+An independent UI/UX review scored the first pass **81/100**. It identified misleading real-time language, compressed mobile homepage actions, excess fare-result height, and duplicated station facts. After those findings were addressed, the same reviewer scored the second pass **88/100** and found no remaining UI blocker for release.
+
+- At a 390 px viewport, the homepage action group measures 330 px and the primary action 225 px; its label no longer wraps.
+- Static timetable states now use `时刻表可用`, `当前时段`, `首班前`, and `末班后` instead of implying a live operations feed.
+- The desktop fare result surface is reduced from 630 px to 460 px, with a 300 px mobile minimum.
+- Station details no longer show the low-value matched-schedule count or duplicate exit and nearby-place facts.
+
+## Browser Evidence
+
+- Shared station picker opens all **404** stations after a station has already been selected.
+- `station_guide.html` lists **404** stations and keeps the full registry available.
+- `Map.html` loads the SVG and exposes **312** mapped station labels while retaining search for the complete station registry.
+- The tested `西直门 → 积水潭` result retains one colored route strip and two station nodes; the strip and station-content widths both measured **86 px**, so the line does not extend beyond its stops.
+- Fare actions remain within their form panel, and the checked homepage, query, fare, station, map, and service-board layouts have no desktop horizontal overflow.
+
+## Remaining Data Limitation
+
+The searchable station registry contains more stations than the supplied SVG exposes as identifiable labels. The interface reports this gap instead of inventing map coordinates. Resolving it completely requires an updated source SVG or a verified station-to-SVG mapping dataset; it is not a styling problem.

@@ -98,7 +98,7 @@
         if (!stationName) {
             refs.liveTitle.textContent = '选择出发站';
             refs.liveClock.textContent = '当前时刻';
-            refs.departures.innerHTML = '<div class="home-departure-empty">选好出发站后，这里会立即显示接下来的列车。</div>';
+            refs.departures.innerHTML = '<div class="home-departure-empty">选择出发站后显示近期列车。</div>';
             return;
         }
 
@@ -106,7 +106,7 @@
         refs.liveTitle.textContent = `${stationName} · 下一班`;
         refs.liveClock.textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
         if (!departures.length) {
-            refs.departures.innerHTML = '<div class="home-departure-empty">当前时段没有可用的后续列车，请查看运行看板确认首末班。</div>';
+            refs.departures.innerHTML = '<div class="home-departure-empty">当前时段暂无后续列车，可查看今日运营确认首末班。</div>';
             return;
         }
 
@@ -271,18 +271,18 @@
 
             refs.stationCount.textContent = String(network.stationCount || index.stations.length);
             refs.lineCount.textContent = String(network.lineCount || index.lines.length);
-            refs.dataMode.textContent = capabilities.capabilities?.write ? '本地服务 · 可管理数据' : '公共浏览 · 只读数据';
+            refs.dataMode.textContent = capabilities.capabilities?.write ? '服务可用' : '可在线浏览';
             refs.dataMode.classList.add('is-ready');
             refs.updated.textContent = network.updatedAt
-                ? `数据文件更新于 ${new Date(network.updatedAt).toLocaleDateString('zh-CN')}`
-                : `已连接 ${index.stations.length} 个站点的本地数据`;
+                ? `时刻表更新于 ${new Date(network.updatedAt).toLocaleDateString('zh-CN')}`
+                : `${index.stations.length} 座车站可查询`;
             refs.submit.disabled = false;
-            setMessage(`已载入 ${index.stations.length} 个站点，点击输入框可浏览全部站点。`, 'ready');
+            setMessage(`${index.stations.length} 座车站已就绪`, 'ready');
             wireControls();
         } catch (error) {
             console.error(error);
-            refs.dataMode.textContent = '数据连接失败';
-            setMessage('无法读取站点或时刻表，请检查本地服务与 data 目录。', 'error');
+            refs.dataMode.textContent = '暂时不可用';
+            setMessage('行程信息暂时无法载入，请稍后刷新。', 'error');
         }
     }
 

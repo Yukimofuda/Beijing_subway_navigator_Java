@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>线路查询</title>
+    <title>路线规划｜北京地铁</title>
     <link rel="stylesheet" href="style/styles.css">
     <link rel="stylesheet" href="style/product-apple.css">
 </head>
@@ -11,12 +11,12 @@
     <div class="page">
         <div class="topbar">
             <div class="brand">
-                <div class="brand-title">线路查询</div>
-                <div class="brand-subtitle">支持最短时间 / 最少换乘</div>
+                <div class="brand-title">路线规划</div>
+                <div class="brand-subtitle">时间优先 · 少换乘</div>
             </div>
             <div class="topbar-actions">
-                <div class="pill">当前时间：<span id="current-time">--:--</span></div>
-                <div class="pill" id="data-status">数据加载中</div>
+                <div class="pill">现在 <span id="current-time">--:--</span></div>
+                <div class="pill" id="data-status">正在准备</div>
                 <a class="btn btn-ghost" href="index.html">返回首页</a>
             </div>
         </div>
@@ -24,9 +24,9 @@
         <div class="card">
             <div class="card-body">
                 <div class="page-heading">
-                    <span class="section-kicker">行程规划</span>
-                    <h1 class="title">选择起终点</h1>
-                    <p class="subtitle">可先选线路缩小范围，也可直接输入中文站名或拼音首字母。</p>
+                    <span class="section-kicker">规划行程</span>
+                    <h1 class="title">从哪里出发？</h1>
+                    <p class="subtitle">先选线路可缩小范围，也可以直接查找站名。</p>
                 </div>
 
                 <div class="journey-planner" style="margin-top:18px;">
@@ -61,18 +61,18 @@
                 </div>
 
                 <div class="preference-bar" style="margin-top:16px;">
-                    <button class="btn btn-ghost btn-toggle is-selected" id="btn-shortest" type="button" onclick="setTravelRequirement('shortestTime')">最短时间</button>
+                    <button class="btn btn-ghost btn-toggle is-selected" id="btn-shortest" type="button" onclick="setTravelRequirement('shortestTime')">时间优先</button>
                     <button class="btn btn-ghost btn-toggle" id="btn-transfers" type="button" onclick="setTravelRequirement('leastTransfers')">最少换乘</button>
                     <button class="btn btn-ghost" id="swap-route" type="button" onclick="swapRouteEndpoints()">交换起终点</button>
                     <button class="btn btn-primary" id="query-button" type="button" onclick="getRoute()" disabled>查询路线</button>
-                    <a class="btn" href="Map.html">打开线路图</a>
+                    <a class="btn" href="Map.html">对照线路图</a>
                 </div>
 
                 <div id="result" style="margin-top:16px;">
                     <div class="empty-state route-empty-state">
                         <div class="empty-state-mark" aria-hidden="true"></div>
-                        <h2>选择起点和终点，开始规划路线</h2>
-                        <p>查询结果将显示预计到达、票价、换乘与完整沿途站点。</p>
+                        <h2>选择两座车站</h2>
+                        <p>路线会显示预计到达、票价、换乘和沿途各站。</p>
                     </div>
                 </div>
             </div>

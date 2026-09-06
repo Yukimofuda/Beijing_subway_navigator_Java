@@ -165,8 +165,11 @@
     }
 
     function timeStringToMinutes(timeString) {
-        if (!/^\d{2}:\d{2}$/.test(String(timeString || ''))) return NaN;
-        const [hours, minutes] = timeString.split(':').map(Number);
+        const match = String(timeString || '').match(/(\d{1,2}):(\d{2})/);
+        if (!match) return NaN;
+        const hours = Number(match[1]);
+        const minutes = Number(match[2]);
+        if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes > 59) return NaN;
         return hours * 60 + minutes;
     }
 
@@ -367,13 +370,13 @@
         const preview = missing.slice(0, 80);
         coveragePanel.innerHTML = `
             <div class="coverage-metrics">
-                <span><strong>${total}</strong> 数据可查询</span>
-                <span><strong>${mapped}</strong> 图面可交互</span>
+                <span><strong>${total}</strong> 座可查询车站</span>
+                <span><strong>${mapped}</strong> 座图上可选</span>
             </div>
             <details${missing.length ? '' : ' hidden'}>
-                <summary>${missing.length} 个站点未在当前 SVG 中找到可交互标注</summary>
-                <p>这些站点仍可通过站点查询、路线规划和站点导览访问；未使用虚构坐标将其放入图面。</p>
-                <div class="map-coverage-chips" aria-label="未在图面标注但可查询的站点">
+                <summary>${missing.length} 座车站暂未显示在图上</summary>
+                <p>这些车站仍可通过上方搜索查看站点与出行信息。</p>
+                <div class="map-coverage-chips" aria-label="暂未显示在图上的可查询车站">
                     ${preview.map((stationName) => `<button class="map-coverage-chip" type="button" data-station="${stationName}">${stationName}</button>`).join('')}
                     ${missing.length > preview.length ? `<span class="muted">另有 ${missing.length - preview.length} 个</span>` : ''}
                 </div>

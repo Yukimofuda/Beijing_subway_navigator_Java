@@ -41,7 +41,7 @@ loadTimetableData()
                 <span class="line-button-mark" aria-hidden="true"></span>
                 <span class="line-button-copy">
                     <strong>${line}</strong>
-                    <small>${stationCount ? `收录 ${stationCount} 站` : '查看时刻数据'}</small>
+                    <small>${stationCount ? `${stationCount} 座车站` : '查看时刻'}</small>
                 </span>
                 <span class="line-button-arrow" aria-hidden="true">›</span>
               </button>

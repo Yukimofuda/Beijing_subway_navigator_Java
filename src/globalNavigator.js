@@ -225,7 +225,7 @@
       trigger.className = 'quick-access-button';
       trigger.type = 'button';
       trigger.dataset.commandTrigger = 'true';
-      trigger.innerHTML = '<span>全局查站</span><kbd>⌘ K</kbd>';
+      trigger.innerHTML = '<span>查站</span><kbd>⌘ K</kbd>';
       actionHost.prepend(trigger);
     }
 
@@ -233,7 +233,7 @@
     mobileTrigger.className = 'mobile-command-trigger';
     mobileTrigger.type = 'button';
     mobileTrigger.dataset.commandTrigger = 'true';
-    mobileTrigger.setAttribute('aria-label', '打开全局查站');
+    mobileTrigger.setAttribute('aria-label', '查找站点');
     mobileTrigger.innerHTML = '<span aria-hidden="true"></span><strong>查站</strong>';
     document.body.appendChild(mobileTrigger);
 

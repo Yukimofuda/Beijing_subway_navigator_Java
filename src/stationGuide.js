@@ -237,8 +237,8 @@
         const facts = document.createElement('div');
         facts.className = 'station-fact-grid';
         [
-            [detail?.knownExits?.length ? detail.knownExits.join(' / ') : '', '出入口'],
-            [detail?.exitCountText || '', '出口数量'],
+            [detail?.knownExits?.length ? detail.knownExits.join(' / ') : '', '已知出入口'],
+            [detail?.exitCountText || '', '出入口说明'],
             [detail?.nearby?.join(' / ') || '', '周边地点'],
             [detail?.services?.join(' / ') || '', '站内服务']
         ].filter(([value]) => value).forEach(([value, label]) => {
@@ -345,10 +345,7 @@
         [
             [firstLast.first ? firstLast.first.time : '暂无时刻数据', '最早到发'],
             [firstLast.last ? firstLast.last.time : '暂无时刻数据', '最晚到发'],
-            [String(firstLast.count), '匹配班次'],
-            [state.details?.[stationName]?.exitCountText || '', '出口数量'],
-            [adjacentStations.slice(0, 4).join(' / ') || '暂无相邻站数据', '相邻站'],
-            [state.details?.[stationName]?.nearby?.join(' / ') || '', '周边地点']
+            [adjacentStations.slice(0, 4).join(' / ') || '暂无相邻站数据', '相邻站']
         ].filter(([value]) => value).forEach(([value, label]) => {
             const tile = document.createElement('div');
             tile.className = 'station-tile';
@@ -467,7 +464,7 @@
             renderDetail();
         } catch (error) {
             console.error(error);
-            refs.detail.innerHTML = '<section class="result-state is-error"><strong>站点数据加载失败</strong><span>请检查本地服务和 data 目录。</span></section>';
+            refs.detail.innerHTML = '<section class="result-state is-error"><strong>站点信息暂时无法载入</strong><span>请稍后刷新页面重试。</span></section>';
         }
     }
 

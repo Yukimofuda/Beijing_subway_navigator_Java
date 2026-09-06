@@ -15,7 +15,7 @@ function setDataReadyState(ready) {
     const queryButton = document.getElementById('query-button');
     if (queryButton) queryButton.disabled = !ready;
     const statusEl = document.getElementById('data-status');
-    if (statusEl) statusEl.textContent = ready ? '数据已就绪' : '数据加载中';
+    if (statusEl) statusEl.textContent = ready ? '数据已就绪' : '正在准备';
 }
 
 function simplifyLineName(lineName) {
@@ -395,16 +395,14 @@ function buildGraph(timetable) {
 
 // 时间字符串（HH:MM）转换为分钟的函数
 function timeStringToMinutes(timeStr) {
-    // 使用正则表达式检查时间字符串的格式是否为HH:MM
-    if (!timeStr || !timeStr.match(/^\d{2}:\d{2}$/)) {
+    const match = String(timeStr || '').match(/(\d{1,2}):(\d{2})/);
+    if (!match) {
         console.error('Invalid time string:', timeStr);
-        return NaN; // 如果格式不正确，返回NaN（Not a Number）
+        return NaN;
     }
-    // 使用冒号分割时间字符串，得到小时和分钟的字符串数组，并使用map(Number)将其转换为数字
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    // 检查转换后的小时或分钟是否为NaN
-    if (isNaN(hours) || isNaN(minutes)) return NaN;
-    // 将小时和分钟转换为总分钟数并返回
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes > 59) return NaN;
     return hours * 60 + minutes;
 }
 

@@ -22,8 +22,11 @@
     }
 
     function timeToMinutes(time) {
-        if (!/^\d{2}:\d{2}$/.test(time || '')) return NaN;
-        const [hours, minutes] = time.split(':').map(Number);
+        const match = String(time || '').match(/(\d{1,2}):(\d{2})/);
+        if (!match) return NaN;
+        const hours = Number(match[1]);
+        const minutes = Number(match[2]);
+        if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes > 59) return NaN;
         return hours * 60 + minutes;
     }
 
@@ -153,10 +156,10 @@
     }
 
     function statusLabel(status) {
-        if (status === 'running') return '运行中';
-        if (status === 'later') return '待开行';
-        if (status === 'closed') return '已结束';
-        return '待确认';
+        if (status === 'running') return '当前时段';
+        if (status === 'later') return '首班前';
+        if (status === 'closed') return '末班后';
+        return '无时刻';
     }
 
     function renderMetrics(items) {

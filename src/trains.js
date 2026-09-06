@@ -113,7 +113,7 @@ loadTimetableData()
   .catch(error => {
     console.error('Error:', error);
     const trainsDiv = document.getElementById('trains');
-    if (trainsDiv) trainsDiv.innerHTML = '<div class="result-state is-error"><strong>车次数据加载失败</strong><span>请确认本地服务和时刻表文件可用。</span></div>';
+    if (trainsDiv) trainsDiv.innerHTML = '<div class="result-state is-error"><strong>车次暂时无法载入</strong><span>请稍后刷新页面重试。</span></div>';
   });
 
 // 点击车次按钮后跳转到车次详细页面
