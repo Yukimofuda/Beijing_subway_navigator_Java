@@ -8,6 +8,7 @@ let isDataReady = false; // 标记时刻表和站点数据是否加载完成
 let stationPickerIndex = null;
 let stationPinyinMap = {};
 let hasAutoQueried = false;
+let hasRouteResult = false;
 const RECENT_ROUTE_KEY = 'subwayRecentRoutes';
 
 function setDataReadyState(ready) {
@@ -72,6 +73,7 @@ function setupStationPickers() {
     const pickers = configs.map((config) =>
         window.TransitData.createStationPicker(stationPickerIndex, stationData, {
             ...config,
+            keepLineSelect: true,
             openShowsAll: true,
             clearStationOnLineChange: true,
             autoSelectFirstStation: false,
@@ -79,7 +81,18 @@ function setupStationPickers() {
         })
     );
     window.__queryPickers = { start: pickers[0], end: pickers[1] };
+    configs.forEach(({ input, lineSelect }) => {
+        ['input', 'stationchange', 'linechange'].forEach((event) => input.addEventListener(event, markRouteStale));
+        lineSelect.addEventListener('change', markRouteStale);
+    });
     applyRouteParams();
+}
+
+function markRouteStale() {
+    const notice = document.getElementById('route-stale-message');
+    if (!hasRouteResult || !notice) return;
+    notice.textContent = '条件已更改，请重新查询。下方保留的是上次方案。';
+    notice.hidden = false;
 }
 
 function applyRouteParams() {
@@ -103,6 +116,7 @@ function swapRouteEndpoints() {
     const end = resolvePickerStation('end-station');
     if (end) window.__queryPickers?.start?.setStation(end);
     if (start) window.__queryPickers?.end?.setStation(start);
+    markRouteStale();
     if (start && end && isDataReady) getRoute();
 }
 
@@ -110,8 +124,7 @@ function resolvePickerStation(inputId) {
     const input = document.getElementById(inputId);
     if (window.__queryPickers) {
         const picker = inputId.includes('start') ? window.__queryPickers.start : window.__queryPickers.end;
-        const stationName = picker?.resolve();
-        if (stationName) return stationName;
+        return picker?.resolve() || '';
     }
     const inputValue = input.value.trim();
     if (input.dataset.station && stationData[input.dataset.station]) return input.dataset.station;
@@ -122,6 +135,7 @@ function resolvePickerStation(inputId) {
 
 // 设置出行模式
 function setTravelRequirement(mode) {
+    const previousRequirement = travelRequirement;
     // 根据用户选择的模式更新 travelRequirement 变量
     if (mode === 'shortestTime') {
         travelRequirement = '最短时间';
@@ -139,7 +153,10 @@ function setTravelRequirement(mode) {
     if (shortestBtn && transfersBtn) {
         shortestBtn.classList.toggle('is-selected', mode === 'shortestTime');
         transfersBtn.classList.toggle('is-selected', mode === 'leastTransfers');
+        shortestBtn.setAttribute('aria-pressed', String(mode === 'shortestTime'));
+        transfersBtn.setAttribute('aria-pressed', String(mode === 'leastTransfers'));
     }
+    if (previousRequirement !== travelRequirement) markRouteStale();
 }
 
 // 为换乘站分配权重
@@ -904,11 +921,14 @@ function countTransfersFromLines(lines) {
     return Math.max(0, simplifyLines(lines || []).length - 1);
 }
 
-function normalizeRouteMetrics(route, actualTimeResult) {
+function normalizeRouteMetrics(route, actualTimeResult, queryTime = currentTimeInMinutes) {
     const staticTravelMinutes = Number(route.time ?? route.totalTime ?? route.distance ?? 0);
     const hasEstimatedSegments = Boolean(actualTimeResult?.hasEstimatedSegments);
     const estimatedActualMinutes = actualTimeResult && !hasEstimatedSegments
-        ? actualTimeResult.endTime - actualTimeResult.startTime
+        ? actualTimeResult.endTime - queryTime
+        : null;
+    const initialWaitMinutes = actualTimeResult && !hasEstimatedSegments
+        ? Math.max(0, actualTimeResult.startTime - queryTime)
         : null;
     return {
         path: route.path,
@@ -917,6 +937,8 @@ function normalizeRouteMetrics(route, actualTimeResult) {
         estimatedDepartureTime: actualTimeResult ? actualTimeResult.startTime : null,
         estimatedArrivalTime: actualTimeResult ? actualTimeResult.endTime : null,
         estimatedActualMinutes,
+        initialWaitMinutes,
+        queryTime,
         hasEstimatedSegments,
         actualTimeResult
     };
@@ -925,6 +947,12 @@ function normalizeRouteMetrics(route, actualTimeResult) {
 function renderRouteState(title, detail, type = 'info') {
     const resultDiv = document.getElementById('result');
     if (!resultDiv) return;
+    const notice = document.getElementById('route-stale-message');
+    if (hasRouteResult && notice) {
+        notice.textContent = `${title}：${detail} 下方保留上次方案，请重新查询。`;
+        notice.hidden = false;
+        return;
+    }
     resultDiv.innerHTML = `
         <section class="result-state is-${type}" role="status">
             <strong>${title}</strong>
@@ -949,6 +977,8 @@ function saveRecentRoute(start, end, mode) {
 
 // 查询地铁路线的函数
 function getRoute() {
+updateCurrentTime();
+const queryTime = currentTimeInMinutes;
 const startStation = resolvePickerStation('start-station'); // 获取用户输入或选择的起始站
 const endStation = resolvePickerStation('end-station'); // 获取用户输入或选择的目的站
 
@@ -1003,7 +1033,7 @@ if (!actualTime) {
 
 // 计算票价
 const fare = calculateFare(routeResult.path);
-const routeMetrics = normalizeRouteMetrics(routeResult, actualTime);
+const routeMetrics = normalizeRouteMetrics(routeResult, actualTime, queryTime);
 // 从实际出行时间结果中提取路径、出发时间、到达时间、行程段和每站到达时间
 const { path, startTime, endTime, segments, stationTimes } = actualTime;
 // 简化显示的线路信息
@@ -1046,13 +1076,16 @@ resultDiv.innerHTML = `
         <div class="route-summary-card"><span class="combo-kind">预计出发</span><strong>${routeMetrics.hasEstimatedSegments ? '暂无班次' : minutesToTimeString(startTime)}</strong></div>
         <div class="route-summary-card"><span class="combo-kind">预计到达</span><strong>${routeMetrics.hasEstimatedSegments ? '--:--' : minutesToTimeString(endTime)}</strong></div>
         <div class="route-summary-card"><span class="combo-kind">静态路径耗时</span><strong>${routeMetrics.staticTravelMinutes} 分钟</strong></div>
-        <div class="route-summary-card"><span class="combo-kind">预计实际出行</span><strong>${routeMetrics.estimatedActualMinutes === null ? '暂无法估算' : `${routeMetrics.estimatedActualMinutes} 分钟`}</strong></div>
+        <div class="route-summary-card"><span class="combo-kind">从查询时刻起 · ${minutesToTimeString(queryTime)}</span><strong>${routeMetrics.estimatedActualMinutes === null ? '暂无法估算' : `${routeMetrics.estimatedActualMinutes} 分钟`}</strong><small>${routeMetrics.initialWaitMinutes === null ? '初始候车暂无法估算' : `含初始候车 ${routeMetrics.initialWaitMinutes} 分钟`}</small></div>
         <div class="route-summary-card"><span class="combo-kind">费用 / 换乘</span><strong>${fare} 元 · ${transferCount < 0 ? 0 : transferCount} 次</strong></div>
     </div>
     <div class="route-path-card"><strong>线路与站点</strong>${buildRouteLineDiagram(segments)}</div>
     <div class="route-path-card"><strong>完整路径</strong><p class="subtitle">${path.join(' → ')}</p></div>
     ${stationTimesHTML}
 `;
+hasRouteResult = true;
+const notice = document.getElementById('route-stale-message');
+if (notice) notice.hidden = true;
 }
 
 // 简化连续相同线路的函数

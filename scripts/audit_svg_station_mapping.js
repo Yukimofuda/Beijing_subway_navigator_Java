@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const assert = require('assert');
+const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const svg = fs.readFileSync(path.join(root, 'Beijing_Subway_System_Map.svg'), 'utf8');
@@ -81,3 +82,20 @@ for (const [station, selector] of Object.entries(corrected)) assert(registry.get
 console.table({ registry: { count: registry.size }, verifiedPhysicalLabels: { count: located.length }, missingSourcePositions: { count: missing.length }, sourceOnlyStations: { count: review.source_labels_outside_registry.length } });
 console.log('PASS: exact selectors, glyph fingerprints, unique bindings and source version verified.');
 console.warn('NOT 404 on-map positions: original artwork lacks 南八里庄、红庙. No coordinates fabricated.');
+
+async function auditBrowserIntegrity() {
+  const code = fs.readFileSync(path.join(root, 'src/sourceIntegrity.js'), 'utf8');
+  for (const nativeCrypto of [undefined, crypto.webcrypto]) {
+    const context = vm.createContext({ TextEncoder, crypto: nativeCrypto });
+    vm.runInContext(code, context);
+    for (const sample of ['', 'abc', '北京地铁', 'x'.repeat(55), 'x'.repeat(56), 'x'.repeat(64), svg]) {
+      assert.strictEqual(await context.SourceIntegrity.sha256(sample), hash(sample), 'Native/HTTP-LAN integrity verification mismatch');
+    }
+  }
+  console.log('PASS: map source integrity in HTTPS and HTTP LAN environments');
+}
+
+auditBrowserIntegrity().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

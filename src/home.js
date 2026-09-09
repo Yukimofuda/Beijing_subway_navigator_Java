@@ -29,6 +29,7 @@
     let startPicker = null;
     let endPicker = null;
     let routeMode = 'shortestTime';
+    let lastRefreshMinute = null;
 
     function escapeHtml(value) {
         return String(value ?? '')
@@ -88,7 +89,7 @@
     }
 
     function waitLabel(minutes) {
-        if (minutes <= 0) return '即将进站';
+        if (minutes <= 0) return '计划本分钟发车';
         if (minutes === 1) return '约 1 分钟';
         return `约 ${minutes} 分钟`;
     }
@@ -96,17 +97,17 @@
     function renderNextDepartures(stationName) {
         if (!refs.departures || !refs.liveTitle) return;
         if (!stationName) {
-            refs.liveTitle.textContent = '选择出发站';
-            refs.liveClock.textContent = '当前时刻';
+            refs.liveTitle.textContent = '下一班车';
+            refs.liveClock.textContent = '按时刻表 · 非实时';
             refs.departures.innerHTML = '<div class="home-departure-empty">选择出发站后显示近期列车。</div>';
             return;
         }
 
         const departures = findNextDepartures(stationName);
         refs.liveTitle.textContent = `${stationName} · 下一班`;
-        refs.liveClock.textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+        refs.liveClock.textContent = `按时刻表 · 非实时 · ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })} 更新`;
         if (!departures.length) {
-            refs.departures.innerHTML = '<div class="home-departure-empty">当前时段暂无后续列车，可查看今日运营确认首末班。</div>';
+            refs.departures.innerHTML = '<div class="home-departure-empty">当前时刻表未提供后续班次，不代表实际停运；请核对运营信息。</div>';
             return;
         }
 
@@ -125,12 +126,18 @@
     function updatePlannerReadiness() {
         const { start, end } = resolveEndpoints();
         renderNextDepartures(start);
-        if (start && end) {
-            setMessage(`${start} → ${end} 已就绪，选择偏好后开始规划。`, 'ready');
+        if ((refs.start.value.trim() && !start) || (refs.end.value.trim() && !end)) {
+            setMessage('站点未选定或不属于所选线路，请选择候选站点，或切换“全部线路”。', 'error');
+        } else if (start && end && start === end) {
+            setMessage('出发站与目的站不能相同。', 'error');
+        } else if (start && end) {
+            setMessage(`${start} → ${end}`, 'ready');
         } else if (start) {
             setMessage(`已选择 ${start}，继续选择目的站。`, 'ready');
         } else if (end) {
             setMessage(`已选择 ${end}，继续选择出发站。`, 'ready');
+        } else {
+            setMessage('');
         }
     }
 
@@ -143,7 +150,15 @@
         const now = new Date();
         refs.currentTime.textContent = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
         const weekend = now.getDay() === 0 || now.getDay() === 6;
-        refs.dayType.textContent = `${now.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short' })} · ${weekend ? '双休日时刻' : '工作日时刻'}`;
+        refs.dayType.textContent = `${now.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })} · ${weekend ? '周末' : '工作日'}`;
+    }
+
+    function refreshDepartureClock(force = false) {
+        const minute = Math.floor(Date.now() / 60000);
+        if (!force && minute === lastRefreshMinute) return;
+        lastRefreshMinute = minute;
+        updateClock();
+        renderNextDepartures(startPicker?.resolve?.() || '');
     }
 
     function readRecentRoutes() {
@@ -217,6 +232,7 @@
                 routeMode = button.dataset.homeMode;
                 document.querySelectorAll('[data-home-mode]').forEach((item) => {
                     item.classList.toggle('is-selected', item === button);
+                    item.setAttribute('aria-pressed', String(item === button));
                 });
             });
         });
@@ -224,17 +240,23 @@
         refs.swap.addEventListener('click', swapEndpoints);
         [refs.start, refs.end].forEach((input) => {
             input.addEventListener('stationchange', updatePlannerReadiness);
+            input.addEventListener('linechange', updatePlannerReadiness);
+            input.addEventListener('input', updatePlannerReadiness);
             input.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter' && input.getAttribute('aria-expanded') !== 'true') {
+                if (event.key === 'Enter' && !event.defaultPrevented && !event.isComposing && input.getAttribute('aria-expanded') !== 'true') {
                     submitRoute();
                 }
             });
         });
+        [refs.startLine, refs.endLine].forEach((input) => input.addEventListener('change', updatePlannerReadiness));
     }
 
     async function init() {
-        updateClock();
-        setInterval(updateClock, 30000);
+        refreshDepartureClock(true);
+        setInterval(refreshDepartureClock, 1000);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') refreshDepartureClock(true);
+        });
         renderRecentRoutes();
 
         try {
@@ -253,6 +275,7 @@
                 menu: refs.startMenu,
                 lineSelect: refs.startLine,
                 lineSummary: refs.startLineSummary,
+                keepLineSelect: true,
                 openShowsAll: true,
                 clearStationOnLineChange: true,
                 autoSelectFirstStation: false,
@@ -263,6 +286,7 @@
                 menu: refs.endMenu,
                 lineSelect: refs.endLine,
                 lineSummary: refs.endLineSummary,
+                keepLineSelect: true,
                 openShowsAll: true,
                 clearStationOnLineChange: true,
                 autoSelectFirstStation: false,
@@ -277,7 +301,7 @@
                 ? `时刻表更新于 ${new Date(network.updatedAt).toLocaleDateString('zh-CN')}`
                 : `${index.stations.length} 座车站可查询`;
             refs.submit.disabled = false;
-            setMessage(`${index.stations.length} 座车站已就绪`, 'ready');
+            setMessage('');
             wireControls();
         } catch (error) {
             console.error(error);

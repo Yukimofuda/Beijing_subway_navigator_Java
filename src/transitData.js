@@ -304,7 +304,10 @@
 
     function resolveStationName(index, stations, inputValue, options = {}) {
         const value = String(inputValue || '').trim();
-        if (stations?.[value]) return value;
+        const lineFilter = simplifyLineName(options.lineFilter || '');
+        if (stations?.[value]) {
+            return !lineFilter || index?.lineMap?.get(lineFilter)?.stations.includes(value) ? value : '';
+        }
 
         const matches = matchStationCandidates(index, stations, value, {
             ...options,
@@ -334,6 +337,7 @@
         const openShowsAll = config.openShowsAll !== false;
         const clearStationOnLineChange = config.clearStationOnLineChange !== false;
         const resolveFuzzy = config.resolveFuzzy !== false;
+        const keepLineSelect = config.keepLineSelect === true;
         let activeOptionIndex = -1;
 
         fillLineSelect(index, lineSelect);
@@ -349,9 +353,10 @@
         function setLineMode(mode, value) {
             if (!lineSummary) return;
             if (mode === 'summary') {
-                lineSelect.hidden = true;
+                lineSelect.hidden = !keepLineSelect;
                 lineSummary.hidden = false;
                 lineSummary.value = value;
+                if (keepLineSelect) lineSummary.textContent = `所属线路：${value}`;
                 return;
             }
             lineSummary.hidden = true;
@@ -366,7 +371,13 @@
                 setLineMode('select');
                 lineSelect.value = lines[0];
             } else if (lines.length > 1) {
+                if (keepLineSelect && !index.lineMap.get(lineSelect.value)?.stations.includes(stationName)) {
+                    lineSelect.value = '';
+                }
                 setLineMode('summary', lines.join(' / '));
+            } else {
+                setLineMode('select');
+                lineSelect.value = '';
             }
         }
 
@@ -396,6 +407,7 @@
             menu.classList.add('is-open');
             input.setAttribute?.('aria-expanded', 'true');
             activeOptionIndex = -1;
+            input.dispatchEvent(new CustomEvent('linechange'));
         }
 
         function renderMenu(options = {}) {
@@ -483,6 +495,7 @@
             options[activeOptionIndex]?.scrollIntoView?.({ block: 'nearest' });
         });
         lineSelect.addEventListener('change', () => {
+            setLineMode('select');
             if (clearStationOnLineChange) {
                 input.value = '';
                 delete input.dataset.station;
@@ -523,6 +536,8 @@
                         lineFilter: selectedLine()
                     });
                 }
+                const lineFilter = simplifyLineName(selectedLine());
+                if (lineFilter && !index.lineMap.get(lineFilter)?.stations.includes(stationName)) return '';
                 return stations[stationName] ? stationName : '';
             },
             setStation: applyStation,

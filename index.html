@@ -19,17 +19,24 @@
             </div>
         </header>
 
+        <section class="metro-masthead" aria-labelledby="metro-title">
+            <div class="metro-wordmark">
+                <span class="metro-wordmark-code" aria-hidden="true">BEIJING<br>METRO</span>
+                <h1 id="metro-title"><span>北京</span><span class="metro-wordmark-rail">地铁<svg viewBox="0 0 190 24" aria-hidden="true"><path d="M2 12h59c10 0 10 0 20-6s10-6 20 0 10 6 20 6h67"/><circle cx="26" cy="12" r="5"/><circle cx="163" cy="12" r="5"/></svg></span></h1>
+                <span class="metro-wordmark-service">出行指南</span>
+            </div>
+            <div class="home-clock" aria-label="当前时间">
+                <strong id="home-current-time">--:--</strong>
+                <span id="home-day-type">--</span>
+            </div>
+        </section>
+
         <main class="product-home">
+          <div class="home-workspace">
             <section class="home-planner card" aria-labelledby="home-planner-title">
                 <div class="home-planner-head">
-                    <div>
-                        <span class="section-kicker">北京地铁</span>
-                        <h1 id="home-planner-title">规划行程</h1>
-                    </div>
-                    <div class="home-clock" aria-label="当前时间">
-                        <strong id="home-current-time">--:--</strong>
-                        <span id="home-day-type">--</span>
-                    </div>
+                    <h2 id="home-planner-title">行程</h2>
+                    <button class="home-swap-control" id="home-swap" type="button" aria-label="交换出发站和目的站"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v15m-3-3 3 3 3-3M17 20V5m-3 3 3-3 3 3"/></svg>交换</button>
                 </div>
 
                 <div class="journey-planner home-journey-planner">
@@ -37,77 +44,65 @@
                         <div class="field line-field">
                             <label class="label" for="home-start-line">出发线路</label>
                             <select class="input" id="home-start-line"></select>
-                            <input class="input line-summary" id="home-start-line-summary" type="text" readonly hidden>
                         </div>
                         <div class="field combo-field">
-                            <label class="label" for="home-start">出发站</label>
+                            <label class="label" for="home-start">从</label>
                             <div class="combo-shell">
                                 <input class="input" id="home-start" placeholder="查找出发站" autocomplete="off">
                                 <div class="combo-menu" id="home-start-menu" role="listbox"></div>
                             </div>
                         </div>
+                        <p class="station-lines-summary" id="home-start-line-summary" aria-live="polite" hidden></p>
                     </section>
 
                     <section class="journey-card station-picker" data-picker="home-end">
                         <div class="field line-field">
                             <label class="label" for="home-end-line">目的线路</label>
                             <select class="input" id="home-end-line"></select>
-                            <input class="input line-summary" id="home-end-line-summary" type="text" readonly hidden>
                         </div>
                         <div class="field combo-field">
-                            <label class="label" for="home-end">目的站</label>
+                            <label class="label" for="home-end">到</label>
                             <div class="combo-shell">
                                 <input class="input" id="home-end" placeholder="查找目的站" autocomplete="off">
                                 <div class="combo-menu" id="home-end-menu" role="listbox"></div>
                             </div>
                         </div>
+                        <p class="station-lines-summary" id="home-end-line-summary" aria-live="polite" hidden></p>
                     </section>
                 </div>
 
                 <div class="home-planner-footer">
                     <div class="segmented-control" aria-label="路线偏好">
-                        <button class="segment-button is-selected" type="button" data-home-mode="shortestTime">更快到达</button>
-                        <button class="segment-button" type="button" data-home-mode="leastTransfers">少换乘</button>
+                        <button class="segment-button is-selected" type="button" data-home-mode="shortestTime" aria-pressed="true">最短时间</button>
+                        <button class="segment-button" type="button" data-home-mode="leastTransfers" aria-pressed="false">最少换乘</button>
                     </div>
                     <div class="home-actions">
-                        <button class="btn btn-ghost" id="home-swap" type="button">交换</button>
-                        <button class="btn btn-primary" id="home-submit" type="button" disabled>查看路线</button>
+                        <button class="btn btn-primary" id="home-submit" type="button" disabled>查看路线<span aria-hidden="true">→</span></button>
                     </div>
                 </div>
                 <p class="form-message" id="home-form-message" aria-live="polite">正在载入站点</p>
-            </section>
-
-            <aside class="home-network card" aria-labelledby="network-title">
-                <div class="home-network-head">
-                    <div>
-                        <span class="section-kicker">现在出发</span>
-                        <h2 id="network-title">下一班车</h2>
-                    </div>
-                    <span class="live-indicator"><span></span>时刻表可用</span>
-                </div>
-                <div class="network-metrics">
-                    <div class="network-metric"><strong id="home-station-count">--</strong><span>座车站</span></div>
-                    <div class="network-metric"><strong id="home-line-count">--</strong><span>条线路</span></div>
-                    <div class="network-metric"><strong>2</strong><span>种日期</span></div>
-                </div>
                 <section class="home-live-board" aria-labelledby="home-live-title">
                     <div class="home-live-board-head">
                         <div>
-                            <span>出发站</span>
-                            <strong id="home-live-title">选择出发站</strong>
+                            <strong id="home-live-title">下一班车</strong>
                         </div>
-                        <span id="home-live-clock">当前时刻</span>
+                        <span id="home-live-clock">按时刻表 · 非实时</span>
                     </div>
                     <div class="home-departures" id="home-live-departures" aria-live="polite">
                         <div class="home-departure-empty">选择出发站后显示近期列车。</div>
                     </div>
                 </section>
-                <div class="service-links">
-                    <a href="service_board.html"><span>首末班与线路状态</span><strong>今日运营</strong></a>
-                    <a href="Map.html"><span>查找线路与车站</span><strong>打开线路图</strong></a>
+            </section>
+
+            <section class="home-map-preview" aria-labelledby="home-map-title">
+                <div class="home-map-heading">
+                    <div><span class="section-kicker">北京轨道交通</span><h2 id="home-map-title">线路图</h2></div>
+                    <a class="home-map-expand" href="Map.html">展开线路图 <span aria-hidden="true">↗</span></a>
                 </div>
-                <p class="data-updated" id="home-updated">正在载入时刻表</p>
-            </aside>
+                <a class="home-map-link" href="Map.html" aria-label="打开可交互的北京地铁线路图"><img src="Beijing_Subway_System_Map.svg" alt="北京地铁线路图局部预览，点击查看全图" decoding="async"></a>
+                <div class="home-map-caption"><span><strong id="home-station-count">--</strong> 座车站 · <strong id="home-line-count">--</strong> 条线路</span><span id="home-updated">载入中</span></div>
+            </section>
+          </div>
 
             <section class="home-task-grid" aria-label="常用出行工具">
                 <a class="task-card task-card-map" href="Map.html">
@@ -134,7 +129,7 @@
 
             <section class="home-recent card">
                 <div class="section-heading-row">
-                    <div><span class="section-kicker">最近使用</span><h2>最近行程</h2></div>
+                    <div><h2>最近行程</h2></div>
                     <a class="text-link" href="query.html">规划新行程</a>
                 </div>
                 <div id="home-recent-routes" class="recent-route-list">

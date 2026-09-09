@@ -22,8 +22,11 @@
 
     <div class="card">
       <div class="card-body">
-        <h1 class="title">选择线路</h1>
-        <p class="subtitle">选择一条线路，继续查看方向与车次。</p>
+        <div class="transit-page-heading">
+          <span class="transit-heading-symbol" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><path d="M24 13v12l8 5"/></svg></span>
+          <div><span class="section-kicker">TRAIN TIMETABLES</span><h1 class="title">列车时刻</h1></div>
+          <div class="transit-heading-caption"><span>线路</span><span class="transit-heading-track" aria-hidden="true"></span><span>车次</span></div>
+        </div>
         <div id="lines" class="line-catalog-grid" style="margin-top:16px;"></div>
       </div>
     </div>

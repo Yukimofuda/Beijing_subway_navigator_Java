@@ -23,10 +23,10 @@
 
         <div class="card">
             <div class="card-body">
-                <div class="page-heading">
-                    <span class="section-kicker">规划行程</span>
-                    <h1 class="title">从哪里出发？</h1>
-                    <p class="subtitle">先选线路可缩小范围，也可以直接查找站名。</p>
+                <div class="page-heading transit-page-heading">
+                    <span class="transit-heading-symbol" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="12" cy="12" r="5"/><circle cx="36" cy="36" r="5"/><path d="M17 12h10a9 9 0 0 1 0 18H21a6 6 0 0 0 0 12h8"/></svg></span>
+                    <div><span class="section-kicker">JOURNEY PLANNER</span><h1 class="title">路线规划</h1></div>
+                    <div class="transit-heading-caption"><span>出发</span><span class="transit-heading-track" aria-hidden="true"></span><span>到达</span></div>
                 </div>
 
                 <div class="journey-planner" style="margin-top:18px;">
@@ -34,7 +34,6 @@
                         <div class="field line-field">
                             <div class="label">出发线路</div>
                             <select class="input station-line-select" id="start-line-select"></select>
-                            <input class="input line-summary" id="start-line-summary" type="text" readonly hidden>
                         </div>
                         <div class="field combo-field">
                             <div class="label">出发站点</div>
@@ -43,12 +42,12 @@
                                 <div class="combo-menu" id="start-station-menu" role="listbox"></div>
                             </div>
                         </div>
+                        <p class="station-lines-summary" id="start-line-summary" aria-live="polite" hidden></p>
                     </section>
                     <section class="journey-card station-picker" data-picker="end">
                         <div class="field line-field">
                             <div class="label">目的线路</div>
                             <select class="input station-line-select" id="end-line-select"></select>
-                            <input class="input line-summary" id="end-line-summary" type="text" readonly hidden>
                         </div>
                         <div class="field combo-field">
                             <div class="label">目的站点</div>
@@ -57,6 +56,7 @@
                                 <div class="combo-menu" id="end-station-menu" role="listbox"></div>
                             </div>
                         </div>
+                        <p class="station-lines-summary" id="end-line-summary" aria-live="polite" hidden></p>
                     </section>
                 </div>
 
@@ -68,6 +68,7 @@
                     <a class="btn" href="Map.html">对照线路图</a>
                 </div>
 
+                <p id="route-stale-message" class="route-stale-message" role="status" hidden>条件已更改，请重新查询。下方保留的是上次方案。</p>
                 <div id="result" style="margin-top:16px;">
                     <div class="empty-state route-empty-state">
                         <div class="empty-state-mark" aria-hidden="true"></div>

@@ -14,7 +14,7 @@ const PAGES = [
   },
   {
     path: '/query.html',
-    mustContain: ['路线规划', '从哪里出发', '目的站点', 'query-button'],
+    mustContain: ['路线规划', 'transit-page-heading', '目的站点', 'query-button'],
     minButtons: 4,
     minInputs: 2,
   },
