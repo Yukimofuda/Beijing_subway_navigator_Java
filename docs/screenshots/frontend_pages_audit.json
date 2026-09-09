@@ -5,25 +5,25 @@
     {
       "page": "/index.html",
       "status": 200,
-      "textLength": 284,
-      "buttons": 6,
-      "inputs": 6,
+      "textLength": 264,
+      "buttons": 5,
+      "inputs": 4,
       "ok": true,
       "missing": ""
     },
     {
       "page": "/query.html",
       "status": 200,
-      "textLength": 153,
+      "textLength": 171,
       "buttons": 10,
-      "inputs": 6,
+      "inputs": 4,
       "ok": true,
       "missing": ""
     },
     {
       "page": "/Map.html",
       "status": 200,
-      "textLength": 145,
+      "textLength": 201,
       "buttons": 9,
       "inputs": 3,
       "ok": true,
@@ -32,7 +32,7 @@
     {
       "page": "/fare_calculator.html",
       "status": 200,
-      "textLength": 148,
+      "textLength": 137,
       "buttons": 6,
       "inputs": 8,
       "ok": true,
@@ -59,7 +59,7 @@
     {
       "page": "/lines.html",
       "status": 200,
-      "textLength": 57,
+      "textLength": 62,
       "buttons": 2,
       "inputs": 0,
       "ok": true,
@@ -68,7 +68,7 @@
     {
       "page": "/stations.html",
       "status": 200,
-      "textLength": 60,
+      "textLength": 66,
       "buttons": 2,
       "inputs": 0,
       "ok": true,
@@ -77,7 +77,7 @@
     {
       "page": "/trains.html",
       "status": 200,
-      "textLength": 68,
+      "textLength": 63,
       "buttons": 4,
       "inputs": 1,
       "ok": true,
@@ -86,7 +86,7 @@
     {
       "page": "/timetable.html",
       "status": 200,
-      "textLength": 82,
+      "textLength": 80,
       "buttons": 4,
       "inputs": 1,
       "ok": true,

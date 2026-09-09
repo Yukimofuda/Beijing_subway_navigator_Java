@@ -56,7 +56,7 @@ An independent UI/UX review scored the first pass **81/100**. It identified misl
 
 - Shared station picker opens all **404** stations after a station has already been selected.
 - `station_guide.html` lists **404** stations and keeps the full registry available.
-- `Map.html` loads the SVG and exposes **312** mapped station labels while retaining search for the complete station registry.
+- Historical result: the old mapper counted **312** station names. The 2026-09 audit found incorrect bindings and recovered **402** verified source labels; two registry records have no position in the original artwork. See `svg_mapping_investigation.md`.
 - The tested `西直门 → 积水潭` result retains one colored route strip and two station nodes; the strip and station-content widths both measured **86 px**, so the line does not extend beyond its stops.
 - Fare actions remain within their form panel, and the checked homepage, query, fare, station, map, and service-board layouts have no desktop horizontal overflow.
 

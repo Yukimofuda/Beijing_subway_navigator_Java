@@ -1,5 +1,7 @@
 # Frontend Page Audit
 
+> 2026-09-09 更新：以下保留早期巡检记录。本轮已完成的复合标题、任务表单、移动端和地图绑定修正，见 [界面精修记录](frontend_refinement_2026-09.md) 与 [独立产品评审](product_review_2026-09.md)。SVG 核验结论为 **402 个真实标签 / 404 个注册表条目**，不再把元数据数量当作图面覆盖。
+
 ## 1. 全局问题
 
 - 问题：主要页面能加载，但当前页面导航没有明确高亮，用户在多页面跳转时缺少位置反馈。
@@ -185,7 +187,7 @@
 ### Map.html 站点数据识别
 
 - 修复前：SVG 只有部分英文站点标签可悬浮匹配，无法说明 `_station.json` 里未出现在图面标注的站点如何处理。
-- 修复后：地图页写入 `station-json-registry` SVG 元数据，覆盖 `_station.json` 全部 404 个站点；侧栏显示“站点数据识别 404/404”，并列出未在图面标注但可查询的站点。
+- 当时实现：地图页写入 404 个 `station-json-registry` 元数据条目；这只证明名称清单完整，不能证明图面存在 404 个位置。2026-09-09 已纠正该口径与映射：真实标签 402 个，南八里庄、红庙无原图位置，详见本轮精修与 SVG 逐站核验报告。
 - 涉及文件：Map.html、src/mapExplorer.js、scripts/audit_svg_station_mapping.js。
 - 浏览器验证结果：通过，浏览器 DOM 中 `#subwayMap svg` 的 `data-station-registry-count` 为 404，且存在 `#station-json-registry`。
 - 截图路径：docs/screenshots/map-station-registry.png。
